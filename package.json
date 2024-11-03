@@ -1,5 +1,22 @@
-"dependencies": {
-  "next": "^13.x.x",  // or the latest version
-  "react": "^18.x.x",
-  "react-dom": "^18.x.x"
+{
+  "name": "endurance-training-app",
+  "version": "1.0.0",
+  "description": "Endurance Training Tracker",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "next": "^15.0.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.8.7",
+    "@types/react": "^18.3.12",
+    "typescript": "^5.6.3"
+  }
 }
