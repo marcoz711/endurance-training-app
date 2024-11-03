@@ -1,0 +1,5 @@
+"dependencies": {
+  "next": "^13.x.x",  // or the latest version
+  "react": "^18.x.x",
+  "react-dom": "^18.x.x"
+}
