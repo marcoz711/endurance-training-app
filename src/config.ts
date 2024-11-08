@@ -1,6 +1,4 @@
 // src/config.ts
-export const config = {
-    googleSheetId: process.env.GOOGLE_SHEET_ID || '',
-    client_email: process.env.GOOGLE_CLIENT_EMAIL || '',
-    private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n') || '',
-  };  
+export const GOOGLE_SHEETS_ID = process.env.GOOGLE_SHEET_ID as string;
+export const GOOGLE_CLIENT_EMAIL = process.env.GOOGLE_CLIENT_EMAIL as string;
+export const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY as string;
