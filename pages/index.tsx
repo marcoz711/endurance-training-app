@@ -1,31 +1,21 @@
-// pages/index.tsx
-import React, { useState } from 'react';
-import Header from '@/components/Header';
-import AppTabs from '@/components/Tabs';
-import TodayTab from '@/components/TodayTab';
-import ProgressTab from '@/components/ProgressTab';
-import WeeklyPlanTab from '@/components/WeeklyPlanTab';
-import { TabsContent } from '@radix-ui/react-tabs'; // Import TabsContent explicitly from Radix UI
+import React from 'react';
+import useTrainingPlan from '@/src/useTrainingPlan';
 
-const Home: React.FC = () => {
-  const [activeTab, setActiveTab] = useState("today");
+const TodayTab = () => {
+  const { data, loading, error } = useTrainingPlan();
+
+  if (loading) return <p>Loading data...</p>;
+  if (error) return <p>Error loading data: {error.message}</p>;
 
   return (
-    <div className="max-w-6xl mx-auto bg-gradient-to-b from-gray-50 to-white min-h-screen">
-      <Header />
-      <AppTabs defaultValue={activeTab} onChange={setActiveTab}>
-        <TabsContent value="today">
-          <TodayTab />
-        </TabsContent>
-        <TabsContent value="progress">
-          <ProgressTab />
-        </TabsContent>
-        <TabsContent value="plan">
-          <WeeklyPlanTab />
-        </TabsContent>
-      </AppTabs>
+    <div>
+      <h2>Today's Data</h2>
+      <pre>{JSON.stringify(data?.today, null, 2)}</pre>
+
+      <h2>Recent Activities</h2>
+      <pre>{JSON.stringify(data?.recentActivities, null, 2)}</pre>
     </div>
   );
 };
 
-export default Home;
+export default TodayTab;
