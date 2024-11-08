@@ -6,9 +6,9 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
 const Header: React.FC = () => {
   return (
-    <header className="sticky top-0 bg-white border-b p-4 flex justify-between items-center shadow-md">
-      <h1 className="text-blue-500 text-2xl font-bold">Endurance Training</h1>
-      <DropdownMenu.Root>
+    <header className="sticky top-0 bg-white border-b p-4 flex justify-between items-center shadow-sm">
+        <h1 className="text-xl font-bold">Training Tracker</h1>
+        <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
           <Button variant="ghost" size="icon">
             <Menu className="h-5 w-5" />

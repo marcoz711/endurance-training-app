@@ -1,31 +1,32 @@
+// components/ui/Button.tsx
 import React from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'ghost';
-  size?: 'default' | 'icon';
+  variant?: 'primary' | 'ghost' | 'outline';
+  size?: 'sm' | 'md' | 'lg';
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = 'primary', size = 'default', className, children, ...props }, ref) => {
-    const baseStyle = 'rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2';
-    const variantStyle =
-      variant === 'primary'
-        ? 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
-        : 'bg-transparent text-gray-700 hover:text-gray-900 focus:ring-gray-400';
-    const sizeStyle = size === 'icon' ? 'p-2' : 'px-4 py-2';
+const Button: React.FC<ButtonProps> = ({ variant = 'primary', size = 'md', className = '', children, ...props }) => {
+  const baseStyle = 'rounded px-4 py-2 font-medium focus:outline-none focus:ring';
+  const variantStyle = {
+    primary: 'bg-blue-500 text-white hover:bg-blue-600',
+    ghost: 'bg-transparent text-blue-500 hover:bg-blue-100',
+    outline: 'border border-blue-500 text-blue-500 hover:bg-blue-50', // Outline style
+  };
+  const sizeStyle = {
+    sm: 'text-sm py-1 px-2',
+    md: 'text-md py-2 px-4',
+    lg: 'text-lg py-3 px-5',
+  };
 
-    return (
-      <button
-        ref={ref}
-        className={`${baseStyle} ${variantStyle} ${sizeStyle} ${className}`}
-        {...props}
-      >
-        {children}
-      </button>
-    );
-  }
-);
-
-Button.displayName = 'Button';
+  return (
+    <button
+      className={`${baseStyle} ${variantStyle[variant]} ${sizeStyle[size]} ${className} flex items-center`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
 
 export default Button;

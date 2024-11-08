@@ -1,19 +1,34 @@
+// components/ui/Card.tsx
 import React from 'react';
 
-export const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
-  <div className={`rounded-lg border border-gray-200 bg-white shadow-sm ${className || ''}`}>
-    {children}
-  </div>
-);
+export function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`rounded-lg border shadow-sm p-4 bg-white ${className}`}>
+      {children}
+    </div>
+  );
+}
 
-export const CardHeader: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
-  <div className={`p-4 border-b border-gray-200 ${className || ''}`}>
-    {children}
-  </div>
-);
+export function CardHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-2">
+      {children}
+    </div>
+  );
+}
 
-export const CardContent: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
-  <div className={`p-4 ${className || ''}`}>
-    {children}
-  </div>
-);
+export function CardTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-lg font-semibold text-gray-800 mb-1">
+      {children}
+    </h3>
+  );
+}
+
+export function CardContent({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`text-gray-600 ${className}`}>
+      {children}
+    </div>
+  );
+}
