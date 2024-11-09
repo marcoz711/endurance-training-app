@@ -3,14 +3,16 @@ import Layout from '../components/Layout';
 import { Card, CardHeader, CardContent, CardTitle } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { ScrollArea } from '../components/ui/ScrollArea';
-import { Footprints, Dumbbell, Activity, Timer, CheckCircle2, Plus } from 'lucide-react';
+import { Footprints, Dumbbell, Activity, Plus } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 
 const Today = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [plannedActivities, setPlannedActivities] = useState<any[]>([]);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchTodayData = async () => {
@@ -58,6 +60,11 @@ const Today = () => {
     }
   };
 
+  // Redirect to logActivity page for logging a different activity
+  const handleLogActivity = () => {
+    router.push('/logActivity');
+  };
+
   return (
     <Layout>
       <ScrollArea>
@@ -81,15 +88,15 @@ const Today = () => {
                       )}
                     </div>
                   </div>
-                  <Button variant="outline" size="sm">
-                    <CheckCircle2 className="h-4 w-4 mr-1" />
-                    Log
-                  </Button>
                 </div>
               ))}
-              <Button variant="ghost" className="mt-2 text-blue-600 hover:text-blue-700 w-full flex items-center justify-center">
+              <Button
+                variant="ghost"
+                className="mt-2 text-blue-600 hover:text-blue-700 w-full flex items-center justify-center"
+                onClick={handleLogActivity}
+              >
                 <Plus className="h-4 w-4 mr-2" />
-                Log Other Activity
+                Log Activity
               </Button>
             </CardContent>
           </Card>
