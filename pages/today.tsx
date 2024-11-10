@@ -1,4 +1,5 @@
 // pages/today.tsx
+
 import Layout from '../components/Layout';
 import { Card, CardHeader, CardContent, CardTitle } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -6,13 +7,11 @@ import { ScrollArea } from '../components/ui/ScrollArea';
 import { Footprints, Dumbbell, Activity, Plus } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
 
 const Today = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [plannedActivities, setPlannedActivities] = useState<any[]>([]);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
-  const router = useRouter();
 
   useEffect(() => {
     const fetchTodayData = async () => {
@@ -36,6 +35,9 @@ const Today = () => {
 
         const recentActivities = activityLogData.slice(0, 2);
 
+        // Log the recent activities to check the format of duration
+        console.log("Fetched Recent Activities:", recentActivities);
+
         setPlannedActivities(todayPlannedActivities);
         setRecentActivities(recentActivities);
       } catch (error) {
@@ -48,22 +50,25 @@ const Today = () => {
     fetchTodayData();
   }, []);
 
+
   const getActivityIcon = (type: string) => {
     switch (type.toLowerCase()) {
       case 'run':
       case 'zone 2 run':
-        return <Footprints className="h-5 w-5 text-blue-600" />;
+        return <Footprints className="mt-1 h-5 w-5 text-blue-600" />;
       case 'strength':
-        return <Dumbbell className="h-5 w-5 text-purple-600" />;
+        return <Dumbbell className="mt-1 h-5 w-5 text-purple-600" />;
       default:
-        return <Activity className="h-5 w-5 text-teal-600" />;
+        return <Activity className="mt-1 h-5 w-5 text-teal-600" />;
     }
   };
 
-  // Redirect to logActivity page for logging a different activity
-  const handleLogActivity = () => {
-    router.push('/logActivity');
-  };
+  function formatDate(dateString: string): string {
+    const date = new Date(dateString);
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
+  }
+
 
   return (
     <Layout>
@@ -75,26 +80,26 @@ const Today = () => {
             </CardHeader>
             <CardContent className="space-y-3">
               {plannedActivities.map((activity, idx) => (
-                <div key={idx} className="flex items-center justify-between border rounded-lg p-3 shadow-sm bg-gray-50">
-                  <div className="flex items-center gap-2">
+                <div key={idx} className="flex items-top justify-between border rounded-lg p-3 shadow-sm bg-gray-50">
+                  <div className="flex items-top gap-2">
                     {getActivityIcon(activity.exercise_type)}
                     <div>
                       <div className="font-medium">{activity.exercise_type}</div>
                       <div className="text-sm text-gray-500">
-                        {activity.duration_planned_min} - {activity.duration_planned_max} min
+                        {activity.duration_planned_min} 
+                        {activity.duration_planned_max && (
+                          <span>- {activity.duration_planned_max}</span>
+                        )}
+                        &nbsp;min
                       </div>
                       {activity.notes && (
-                        <div className="text-xs text-gray-400">{activity.notes}</div>
+                        <div className="text-sm text-gray-400">{activity.notes}</div>
                       )}
                     </div>
                   </div>
                 </div>
               ))}
-              <Button
-                variant="ghost"
-                className="mt-2 text-blue-600 hover:text-blue-700 w-full flex items-center justify-center"
-                onClick={handleLogActivity}
-              >
+              <Button variant="ghost" className="mt-2 text-blue-600 hover:text-blue-700 w-full flex items-center justify-center">
                 <Plus className="h-4 w-4 mr-2" />
                 Log Activity
               </Button>
@@ -110,16 +115,22 @@ const Today = () => {
                 {recentActivities.map((activity, idx) => (
                   <div key={idx} className="p-3 border rounded-lg shadow-sm bg-gray-50">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-top gap-2">
                         {getActivityIcon(activity.exercise_type)}
                         <div>
                           <span className="font-medium">{activity.exercise_type}</span>
                           {activity.duration && (
-                            <div className="text-xs text-gray-500">{activity.duration} minutes</div>
+                            <div className="text-sm text-gray-500">
+                              Duration: {activity.duration}
+                            </div>
                           )}
+                          {activity.notes && (
+                            <div className="text-sm text-gray-500"> Note {activity.notes}</div>
+                          )
+                          }
                         </div>
                       </div>
-                      <span className="text-sm text-gray-500">{activity.date}</span>
+                      <span className="text-sm text-gray-500">{formatDate(activity.date)}</span>
                     </div>
                     {/* Display colored boxes if data is available */}
                     {(activity.distance || activity.z2_percent || activity.pace) && (
@@ -143,9 +154,6 @@ const Today = () => {
                           </div>
                         )}
                       </div>
-                    )}
-                    {activity.notes && (
-                      <div className="text-xs text-gray-400 mt-2">{activity.notes}</div>
                     )}
                   </div>
                 ))}

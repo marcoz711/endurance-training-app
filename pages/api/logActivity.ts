@@ -30,13 +30,6 @@ const validateRequestBody = (body: any) => {
       throw new Error('Percentages must be between 0 and 100');
     }
   });
-
-  // Check if Zone 2 percentages sum to 100
-  const totalPercentage = ['z2_percent', 'above_z2_percent', 'below_z2_percent']
-    .reduce((sum, field) => sum + (Number(body[field]) || 0), 0);
-  if (totalPercentage !== 100) {
-    throw new Error('Zone percentages (Z2, Above Z2, Below Z2) must sum up to 100');
-  }
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

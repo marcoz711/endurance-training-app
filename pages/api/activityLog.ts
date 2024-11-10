@@ -29,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       date: row[0] || null,
       timestamp: row[1] || null,
       exercise_type: row[2] || null,
-      duration: row[3] ? parseInt(row[3]) : null,
+      duration: row[3] || null,
       distance: row[4] ? parseFloat(row[4]) : null,
       avg_hr: row[5] ? parseInt(row[5]) : null,
       max_hr: row[6] ? parseInt(row[6]) : null,
