@@ -5,6 +5,10 @@ import { GOOGLE_SHEETS_ID, GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY } from '../..
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
+    const { start, end } = req.query;
+    const startDate = start ? new Date(start as string) : null;
+    const endDate = end ? new Date(end as string) : null;
+
     // Set up Google Sheets API client with environment variables for auth
     const auth = new google.auth.JWT(
       GOOGLE_CLIENT_EMAIL,
@@ -25,14 +29,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'No data found in Training Plan' });
     }
 
-    // Transform the data
+    // Transform the data and filter by date range
     const data = rows.slice(1).map((row) => ({
       date: row[0] || null,
       exercise_type: row[1] || null,
       duration_planned_min: row[2] ? parseInt(row[2]) : null,
       duration_planned_max: row[3] ? parseInt(row[3]) : null,
       notes: row[4] || null,
-    }));
+    })).filter((entry) => {
+      const entryDate = entry.date ? new Date(entry.date) : null;
+      return (
+        entryDate &&
+        (!startDate || entryDate >= startDate) &&
+        (!endDate || entryDate <= endDate)
+      );
+    });
 
     // Sort by date in ascending order
     data.sort((a, b) => (a.date > b.date ? 1 : -1));

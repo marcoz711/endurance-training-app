@@ -7,11 +7,13 @@ import { ScrollArea } from '../components/ui/ScrollArea';
 import { Footprints, Dumbbell, Activity, Plus } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 
 const Today = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [plannedActivities, setPlannedActivities] = useState<any[]>([]);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchTodayData = async () => {
@@ -28,7 +30,7 @@ const Today = () => {
         const trainingPlanData = await trainingPlanRes.json();
         const activityLogData = await activityLogRes.json();
 
-        const todayDate = new Date().toISOString().split('T')[0];
+        const todayDate = new Date("2024-11-09").toISOString().split('T')[0];
         const todayPlannedActivities = trainingPlanData.filter(
           (activity: any) => activity.date === todayDate
         );
@@ -69,6 +71,10 @@ const Today = () => {
     return date.toLocaleDateString('en-US', options);
   }
 
+    // Redirect to logActivity page for logging a different activity
+    const handleLogActivity = () => {
+      router.push('/logActivity');
+    };
 
   return (
     <Layout>
@@ -76,7 +82,11 @@ const Today = () => {
         <div className="space-y-6">
           <Card className="p-4 shadow-md rounded-lg">
             <CardHeader>
-              <CardTitle>Today's Training</CardTitle>
+              <CardTitle>Today's Training - {new Date().toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        month: 'short',
+                        day: 'numeric',
+                      })}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {plannedActivities.map((activity, idx) => (
@@ -86,20 +96,20 @@ const Today = () => {
                     <div>
                       <div className="font-medium">{activity.exercise_type}</div>
                       <div className="text-sm text-gray-500">
-                        {activity.duration_planned_min} 
+                        Duration: {activity.duration_planned_min} 
                         {activity.duration_planned_max && (
                           <span>- {activity.duration_planned_max}</span>
                         )}
                         &nbsp;min
                       </div>
                       {activity.notes && (
-                        <div className="text-sm text-gray-400">{activity.notes}</div>
+                        <div className="text-sm text-gray-400">Note: {activity.notes}</div>
                       )}
                     </div>
                   </div>
                 </div>
               ))}
-              <Button variant="ghost" className="mt-2 text-blue-600 hover:text-blue-700 w-full flex items-center justify-center">
+              <Button variant="ghost" className="mt-2 text-blue-600 hover:text-blue-700 w-full flex items-center justify-center" onClick={handleLogActivity}>
                 <Plus className="h-4 w-4 mr-2" />
                 Log Activity
               </Button>
@@ -125,7 +135,7 @@ const Today = () => {
                             </div>
                           )}
                           {activity.notes && (
-                            <div className="text-sm text-gray-500"> Note {activity.notes}</div>
+                            <div className="text-sm text-gray-500"> Note: {activity.notes}</div>
                           )
                           }
                         </div>

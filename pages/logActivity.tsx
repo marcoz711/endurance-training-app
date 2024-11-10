@@ -134,25 +134,25 @@ const LogActivity = () => {
   };
 
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto', padding: '20px' }}>
-      <h1>Log Activity</h1>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {success && <p style={{ color: 'green' }}>{success}</p>}
+    <div className="max-w-xl mx-auto p-6 bg-white shadow-md rounded-md">
+      <h1 className="text-2xl font-semibold mb-4">Log Activity</h1>
+      {error && <p className="text-red-500 mb-4">{error}</p>}
+      {success && <p className="text-green-500 mb-4">{success}</p>}
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <label>
-          Date:
-          <input type="date" name="date" value={formData.date} onChange={handleChange} required />
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <label className="block">
+          <span className="text-gray-700">Date:</span>
+          <input type="date" name="date" value={formData.date} onChange={handleChange} required className="mt-1 block w-full border rounded-md p-2" />
         </label>
 
-        <label>
-          Time (HH:MM:SS):
-          <input type="text" name="timestamp" value={formData.timestamp} onChange={handleChange} required placeholder="HH:MM:SS" />
+        <label className="block">
+          <span className="text-gray-700">Time (HH:MM:SS):</span>
+          <input type="text" name="timestamp" value={formData.timestamp} onChange={handleChange} required placeholder="HH:MM:SS" className="mt-1 block w-full border rounded-md p-2" />
         </label>
 
-        <label>
-          Activity Type:
-          <select name="activityType" value={activityType} onChange={handleActivityTypeChange} required>
+        <label className="block">
+          <span className="text-gray-700">Activity Type:</span>
+          <select name="activityType" value={activityType} onChange={handleActivityTypeChange} required className="mt-1 block w-full border rounded-md p-2">
             <option value="">Select Type</option>
             <option value="Run">Run</option>
             <option value="Strength">Strength</option>
@@ -163,62 +163,62 @@ const LogActivity = () => {
         </label>
 
         {activityType === 'Other' && (
-          <label>
-            Specify Activity Type:
-            <input type="text" name="exercise_type" value={formData.exercise_type} onChange={handleChange} required placeholder="Enter activity name" />
+          <label className="block">
+            <span className="text-gray-700">Specify Activity Type:</span>
+            <input type="text" name="exercise_type" value={formData.exercise_type} onChange={handleChange} required placeholder="Enter activity name" className="mt-1 block w-full border rounded-md p-2" />
           </label>
         )}
 
-        <label>
-          Duration (HH:MM:SS):
-          <input type="text" name="duration" value={formData.duration} onChange={handleChange} required placeholder="HH:MM:SS" />
+        <label className="block">
+          <span className="text-gray-700">Duration (HH:MM:SS):</span>
+          <input type="text" name="duration" value={formData.duration} onChange={handleChange} required placeholder="HH:MM:SS" className="mt-1 block w-full border rounded-md p-2" />
         </label>
 
         {activityType === 'Run' && (
           <>
-            <label>
-              Distance (km):
-              <input type="number" name="distance" value={formData.distance} onChange={handleChange} placeholder="Distance in kilometers" />
+            <label className="block">
+              <span className="text-gray-700">Distance (km):</span>
+              <input type="number" name="distance" value={formData.distance} onChange={handleChange} placeholder="Distance in kilometers" className="mt-1 block w-full border rounded-md p-2" />
             </label>
 
-            <label>
-              Average Heart Rate:
-              <input type="number" name="avg_hr" value={formData.avg_hr} onChange={handleChange} placeholder="Average heart rate" />
+            <label className="block">
+              <span className="text-gray-700">Average Heart Rate:</span>
+              <input type="number" name="avg_hr" value={formData.avg_hr} onChange={handleChange} placeholder="Average heart rate" className="mt-1 block w-full border rounded-md p-2" />
             </label>
 
-            <label>
-              Max Heart Rate:
-              <input type="number" name="max_hr" value={formData.max_hr} onChange={handleChange} placeholder="Max heart rate" />
+            <label className="block">
+              <span className="text-gray-700">Max Heart Rate:</span>
+              <input type="number" name="max_hr" value={formData.max_hr} onChange={handleChange} placeholder="Max heart rate" className="mt-1 block w-full border rounded-md p-2" />
             </label>
 
-            <label>
-              Zone 2 %:
-              <input type="number" name="z2_percent" value={formData.z2_percent} onChange={handleChange} placeholder="Zone 2 percentage" />
+            <label className="block">
+              <span className="text-gray-700">Zone 2 %:</span>
+              <input type="number" name="z2_percent" value={formData.z2_percent} onChange={handleChange} placeholder="Zone 2 percentage" className="mt-1 block w-full border rounded-md p-2" />
             </label>
 
-            <label>
-              Above Zone 2 %:
-              <input type="number" name="above_z2_percent" value={formData.above_z2_percent} onChange={handleChange} placeholder="Above Zone 2 percentage" />
+            <label className="block">
+              <span className="text-gray-700">Above Zone 2 %:</span>
+              <input type="number" name="above_z2_percent" value={formData.above_z2_percent} onChange={handleChange} placeholder="Above Zone 2 percentage" className="mt-1 block w-full border rounded-md p-2" />
             </label>
 
-            <label>
-              Below Zone 2 %:
-              <input type="number" name="below_z2_percent" value={formData.below_z2_percent} onChange={handleChange} placeholder="Below Zone 2 percentage" />
+            <label className="block">
+              <span className="text-gray-700">Below Zone 2 %:</span>
+              <input type="number" name="below_z2_percent" value={formData.below_z2_percent} onChange={handleChange} placeholder="Below Zone 2 percentage" className="mt-1 block w-full border rounded-md p-2" />
             </label>
 
-            <label>
-              Pace (MM:SS):
-              <input type="text" name="pace" value={formData.pace} onChange={handleChange} placeholder="Pace (MM:SS)" />
+            <label className="block">
+              <span className="text-gray-700">Pace (MM:SS):</span>
+              <input type="text" name="pace" value={formData.pace} onChange={handleChange} placeholder="Pace (MM:SS)" className="mt-1 block w-full border rounded-md p-2" />
             </label>
           </>
         )}
 
-        <label>
-          Notes:
-          <textarea name="notes" value={formData.notes} onChange={handleChange} placeholder="Notes" />
+        <label className="block">
+          <span className="text-gray-700">Notes:</span>
+          <textarea name="notes" value={formData.notes} onChange={handleChange} placeholder="Notes" className="mt-1 block w-full border rounded-md p-2" />
         </label>
 
-        <button type="submit" className="mt-4 w-full bg-blue-600 text-white py-2 rounded-md">
+        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-md">
           Log Activity
         </button>
       </form>
