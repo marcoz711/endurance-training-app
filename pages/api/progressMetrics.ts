@@ -1,19 +1,21 @@
 // pages/api/progressMetrics.ts
+
 import { NextApiRequest, NextApiResponse } from 'next';
 import { google } from 'googleapis';
 import { GOOGLE_SHEETS_ID, GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY } from '../../src/config';
 
-// Helper function to format total seconds into MM:SS
+// Helper function to format total seconds into HH:MM:SS
 function formatPace(value: string): string {
   if (value.includes(':')) {
-    // Already in MM:SS format
+    // Already in HH:MM:SS format
     return value;
   }
 
   const totalSeconds = parseInt(value, 10);
-  const minutes = Math.floor(totalSeconds / 60);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -43,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const metricType = row[1] || null;
       let value = row[2] || null;
 
-      // Format value as MM:SS if metricType indicates it's a pace metric
+      // Format value as HH:MM:SS if metricType indicates it's a pace metric
       if (metricType && metricType.toLowerCase().includes("pace") && value) {
         value = formatPace(value);
       } else if (value) {

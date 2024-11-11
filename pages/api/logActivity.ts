@@ -6,7 +6,7 @@ import { GOOGLE_SHEETS_ID, GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY } from '../..
 // Validation function to ensure correct data format and values
 const validateRequestBody = (body: any) => {
   const durationPattern = /^(\d{2}):(\d{2}):(\d{2})$/;
-  const pacePattern = /^(\d{2}):(\d{2})$/;
+  const pacePattern = /^(\d{2}):(\d{2}):(\d{2})$/;
 
   if (!body.date || !body.timestamp || !body.exercise_type || !body.duration) {
     throw new Error('Required fields are missing.');
@@ -15,7 +15,7 @@ const validateRequestBody = (body: any) => {
     throw new Error('Duration must be in HH:MM:SS format');
   }
   if (body.pace && !pacePattern.test(body.pace)) {
-    throw new Error('Pace must be in MM:SS format');
+    throw new Error('Pace must be in HH:MM:SS format');
   }
 
   const numericFields = ['distance', 'avg_hr', 'max_hr', 'z2_percent', 'above_z2_percent', 'below_z2_percent'];

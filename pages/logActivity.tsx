@@ -1,6 +1,7 @@
 // pages/logActivity.tsx
 import { useState } from 'react';
 import { useRouter } from 'next/router';
+import calculateWeeklyMetricS from './api/calculateWeeklyMetrics';
 
 const LogActivity = () => {
   const router = useRouter();
@@ -51,7 +52,7 @@ const LogActivity = () => {
   // Form data validation
   const validateFormData = () => {
     const durationPattern = /^(\d{2}):(\d{2}):(\d{2})$/;
-    const pacePattern = /^(\d{2}):(\d{2})$/;
+    const pacePattern = /^(\d{2}):(\d{2}):(\d{2})$/;
 
     if (!formData.date || !formData.timestamp || !formData.exercise_type || !formData.duration) {
       return 'Please fill out all required fields.';
@@ -60,7 +61,7 @@ const LogActivity = () => {
       return 'Duration must be in HH:MM:SS format';
     }
     if (activityType === 'Run' && formData.pace && !pacePattern.test(formData.pace)) {
-      return 'Pace must be in MM:SS format';
+      return 'Pace must be in HH:MM:SS format';
     }
 
     const numericFields = ['distance', 'avg_hr', 'max_hr', 'z2_percent', 'above_z2_percent', 'below_z2_percent'];
@@ -127,6 +128,9 @@ const LogActivity = () => {
         notes: '',
       });
       router.push('/today');
+      await fetch('/api/calculateWeeklyMetrics', {
+        method: 'POST',
+      });
     } else {
       const errorData = await res.json();
       setError(errorData.error || 'An error occurred while logging the activity.');
@@ -207,8 +211,8 @@ const LogActivity = () => {
             </label>
 
             <label className="block">
-              <span className="text-gray-700">Pace (MM:SS):</span>
-              <input type="text" name="pace" value={formData.pace} onChange={handleChange} placeholder="Pace (MM:SS)" className="mt-1 block w-full border rounded-md p-2" />
+              <span className="text-gray-700">Pace (HH:MM:SS):</span>
+              <input type="text" name="pace" value={formData.pace} onChange={handleChange} placeholder="Pace (HH:MM:SS)" className="mt-1 block w-full border rounded-md p-2" />
             </label>
           </>
         )}

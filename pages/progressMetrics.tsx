@@ -1,4 +1,5 @@
 // pages/progressMetrics.tsx
+
 import Layout from '../components/Layout';
 import { Card, CardHeader, CardContent, CardTitle } from '../components/ui/Card';
 import { GetServerSideProps } from 'next';
@@ -26,20 +27,26 @@ export const getServerSideProps: GetServerSideProps = async () => {
   return { props: { progressData } };
 };
 
-// Helper function to convert MM:SS pace format to decimal minutes
-const convertPaceToMinutes = (pace: string): number => {
-  const [minutes, seconds] = pace.split(':').map(Number);
-  return minutes + seconds / 60;
+// Helper function to convert HH:MM:SS pace format to decimal hours
+const convertPaceToHours = (pace: string): number => {
+  const [hours, minutes, seconds] = pace.split(':').map(Number);
+  return hours + minutes / 60 + seconds / 3600;
 };
 
-// Helper function to convert decimal minutes back to MM:SS format
-const formatMinutesToPace = (decimalMinutes: number): string => {
-  const minutes = Math.floor(decimalMinutes);
-  const seconds = Math.round((decimalMinutes - minutes) * 60);
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+// Helper function to convert decimal hours back to HH:MM:SS format
+const formatHoursToPace = (decimalHours: number): string => {
+  const isNegative = decimalHours < 0;
+  const absoluteHours = Math.abs(decimalHours);
+
+  const hours = Math.floor(absoluteHours);
+  const minutes = Math.floor((absoluteHours - hours) * 60);
+  const seconds = Math.round(((absoluteHours - hours) * 60 - minutes) * 60);
+
+  return `${isNegative ? '-' : ''}${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
 const calculateWeeklyAverages = (data: ProgressMetric[], metricType: string, isPace = false) => {
+  // Step 1: Filter and organize data by week
   const uniqueWeeklyData = Array.from(
     new Map(
       data
@@ -53,20 +60,24 @@ const calculateWeeklyAverages = (data: ProgressMetric[], metricType: string, isP
     .slice(0, 5)
     .reverse();
 
-  // Convert all values to numbers, converting pace data if required
-  const weeklyAverages = recentWeeks.map((item) =>
-    isPace && typeof item.value === 'string'
-      ? convertPaceToMinutes(item.value)
-      : Number(item.value) // Ensure other values are also converted to numbers
-  );
+  // Step 2: Convert values to decimal hours (for pace) or numbers
+  const weeklyAverages = recentWeeks.map((item) => {
+    return isPace && typeof item.value === 'string' ? convertPaceToHours(item.value) : Number(item.value);
+  });
 
   const dates = recentWeeks.map((item) => dayjs(item.date).format('MM/DD'));
   const currentAverage = weeklyAverages[weeklyAverages.length - 1] || 0;
 
-  // Calculate the change over 5 weeks, ensuring the values are numbers and rounding to 1 decimal
-  const change = weeklyAverages.length >= 2
-    ? +(weeklyAverages[weeklyAverages.length - 1] - weeklyAverages[0]).toFixed(1)
-    : 0;
+  // Step 3: Calculate change over 5 weeks
+  let change;
+  if (weeklyAverages.length >= 2) {
+    const difference = weeklyAverages[weeklyAverages.length - 1] - weeklyAverages[0];
+
+    // Format as HH:MM:SS if it's a pace metric
+    change = isPace && !isNaN(difference) ? formatHoursToPace(difference) : +difference.toFixed(1);
+  } else {
+    change = isPace ? "00:00:00" : 0;
+  }
 
   return { weeklyAverages, currentAverage, dates, change };
 };
@@ -103,7 +114,7 @@ const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
     ],
   };
 
-  const chartOptions = {
+  const zone2ChartOptions = {
     plugins: {
       legend: {
         display: false,
@@ -116,8 +127,31 @@ const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
       y: {
         display: true,
         ticks: {
-          stepSize: 5,
-          callback: (value: any) => `${value}%`,
+          callback: (value: any) => `${value}%`, // Display as percentage
+        },
+        grid: {
+          display: true,
+          color: "#e5e7eb",
+          lineWidth: 0.5,
+        },
+      },
+    },
+  };
+
+  const paceChartOptions = {
+    plugins: {
+      legend: {
+        display: false,
+      },
+    },
+    scales: {
+      x: {
+        display: true,
+      },
+      y: {
+        display: true,
+        ticks: {
+          callback: (value: any) => formatHoursToPace(value as number), // Display as HH:MM:SS for pace
         },
         grid: {
           display: true,
@@ -137,7 +171,7 @@ const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
             <CardTitle>Zone 2 Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <Line data={zone2ChartData} options={chartOptions} />
+            <Line data={zone2ChartData} options={zone2ChartOptions} />
             <div className="flex justify-between items-end mt-4">
               <div className="text-left">
                 <p className="text-sm text-gray-500">Current</p>
@@ -162,32 +196,18 @@ const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
             <CardTitle>Pace Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <Line data={paceChartData} options={{
-              ...chartOptions,
-              scales: {
-                y: {
-                  display: true,
-                  ticks: {
-                    callback: (value: any) => `${Math.floor(value)}:${Math.round((value % 1) * 60).toString().padStart(2, '0')}`,
-                  },
-                  grid: {
-                    display: true,
-                    color: "#e5e7eb",
-                  },
-                },
-              },
-            }} />
+            <Line data={paceChartData} options={paceChartOptions} />
             <div className="flex justify-between items-end mt-4">
               <div className="text-left">
                 <p className="text-sm text-gray-500">Current Pace</p>
-                <p className="text-l font-semibold">{formatMinutesToPace(currentPace as number)} min/km</p>
+                <p className="text-l font-semibold">{formatHoursToPace(currentPace as number)} min/km</p>
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-500">Change</p>
-                <div className={`flex items-center ${paceChange <= 0 ? 'text-green-500' : 'text-red-500'} text-l`}>
-                  {paceChange <= 0 ? <FaArrowDown /> : <FaArrowUp />}
+                <div className={`flex items-center ${paceChange.startsWith('-') ? 'text-green-500' : 'text-red-500'} text-l`}>
+                  {paceChange.startsWith('-') ? <FaArrowDown /> : <FaArrowUp />}
                   <span className="ml-1">
-                    {paceChange <= 0 ? `-${formatMinutesToPace(Math.abs(paceChange))}` : `+${formatMinutesToPace(paceChange)}`} in 5 weeks
+                    {paceChange.startsWith('-') ? paceChange : `+${paceChange}`} in 5 weeks
                   </span>
                 </div>
               </div>
