@@ -1,7 +1,6 @@
 // pages/logActivity.tsx
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import calculateWeeklyMetricS from './api/calculateWeeklyMetrics';
 
 const LogActivity = () => {
   const router = useRouter();
@@ -23,18 +22,15 @@ const LogActivity = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Handle change for input fields
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Handle activity type change
   const handleActivityTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     setActivityType(value);
     setFormData({ ...formData, exercise_type: value === 'Other' ? '' : value });
 
-    // Clear run-specific fields if activity type is not 'Run'
     if (value !== 'Run') {
       setFormData((prevData) => ({
         ...prevData,
@@ -49,7 +45,6 @@ const LogActivity = () => {
     }
   };
 
-  // Form data validation
   const validateFormData = () => {
     const durationPattern = /^(\d{2}):(\d{2}):(\d{2})$/;
     const pacePattern = /^(\d{2}):(\d{2}):(\d{2})$/;
@@ -81,7 +76,6 @@ const LogActivity = () => {
     return null;
   };
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -93,7 +87,6 @@ const LogActivity = () => {
       return;
     }
 
-    // Filter out run-specific fields if activity type is not 'Run'
     const dataToSubmit = { ...formData };
     if (activityType !== 'Run') {
       delete dataToSubmit.distance;
@@ -127,10 +120,15 @@ const LogActivity = () => {
         pace: '',
         notes: '',
       });
-      router.push('/today');
+
+      // Trigger weekly metrics calculation with the logged activity's date
       await fetch('/api/calculateWeeklyMetrics', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: formData.date }),
       });
+
+      router.push('/today');
     } else {
       const errorData = await res.json();
       setError(errorData.error || 'An error occurred while logging the activity.');
