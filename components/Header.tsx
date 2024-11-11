@@ -10,7 +10,7 @@ const Header: React.FC = () => {
         <h1 className="text-xl font-bold">Training Tracker</h1>
         <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="md">
             <Menu className="h-5 w-5" />
           </Button>
         </DropdownMenu.Trigger>
