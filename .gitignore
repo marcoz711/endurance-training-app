@@ -1,4 +1,5 @@
 node_modules/
 .next/
 credentials.json
-src/scripts/setup-sheets.ts
+.env.local
+token.json
