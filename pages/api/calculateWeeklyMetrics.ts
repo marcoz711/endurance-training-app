@@ -38,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const weekStartFormatted = weekStart.toISOString().split('T')[0];
     const weekEndFormatted = weekEnd.toISOString().split('T')[0];
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/activityLog`);
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/activityLog`);
     const activityLogs = await response.json();
 
     const validRuns = activityLogs.filter(

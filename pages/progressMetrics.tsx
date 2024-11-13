@@ -21,11 +21,13 @@ interface ProgressMetricsProps {
   progressData: ProgressMetric[];
 }
 
-export const getServerSideProps: GetServerSideProps = async () => {
-  const res = await fetch('/api/progressMetrics');
+export const getServerSideProps: GetServerSideProps = async ({ req }) => {
+  const baseUrl = req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3000';
+  const res = await fetch(`${baseUrl}/api/progressMetrics`);
   const progressData = await res.json();
   return { props: { progressData } };
 };
+
 
 // Helper function to convert HH:MM:SS pace format to decimal hours
 const convertPaceToHours = (pace: string): number => {
