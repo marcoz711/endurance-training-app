@@ -30,7 +30,7 @@ const Today = () => {
         const trainingPlanData = await trainingPlanRes.json();
         const activityLogData = await activityLogRes.json();
 
-        const todayDate = new Date("2024-11-09").toISOString().split('T')[0];
+        const todayDate = new Date().toISOString().split('T')[0];
         const todayPlannedActivities = trainingPlanData.filter(
           (activity: any) => activity.date === todayDate
         );
