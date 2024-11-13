@@ -136,7 +136,7 @@ const WeeklyPlan = () => {
                             <div className="text-sm text-gray-500">
                               Duration: {activity.duration_planned_min}
                               {activity.duration_planned_max && (
-                                <span>- {activity.duration_planned_max}</span>
+                                <span> - {activity.duration_planned_max}</span>
                               )}
                               &nbsp;min
                             </div>

@@ -34,7 +34,6 @@ const Today = () => {
         const todayPlannedActivities = trainingPlanData.filter(
           (activity: any) => activity.date === todayDate
         );
-
         const recentActivities = activityLogData.slice(0, 2);
 
         // Log the recent activities to check the format of duration
@@ -98,7 +97,7 @@ const Today = () => {
                       <div className="text-sm text-gray-500">
                         Duration: {activity.duration_planned_min} 
                         {activity.duration_planned_max && (
-                          <span>- {activity.duration_planned_max}</span>
+                          <span> - {activity.duration_planned_max}</span>
                         )}
                         &nbsp;min
                       </div>

@@ -22,7 +22,7 @@ interface ProgressMetricsProps {
 }
 
 export const getServerSideProps: GetServerSideProps = async () => {
-  const res = await fetch('http://localhost:3000/api/progressMetrics');
+  const res = await fetch('/api/progressMetrics');
   const progressData = await res.json();
   return { props: { progressData } };
 };
