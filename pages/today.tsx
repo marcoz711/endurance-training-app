@@ -120,7 +120,6 @@ const Today = () => {
               <CardTitle>Recent Activities</CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[300px] space-y-2">
                 {recentActivities.map((activity, idx) => (
                   <div key={idx} className="p-3 border rounded-lg shadow-sm bg-gray-50">
                     <div className="flex items-center justify-between mb-2">
@@ -166,7 +165,6 @@ const Today = () => {
                     )}
                   </div>
                 ))}
-              </ScrollArea>
             </CardContent>
           </Card>
         </div>
