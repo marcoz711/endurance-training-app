@@ -1,12 +1,13 @@
-import { useEffect } from 'react';
-import { useRouter } from 'next/router';
+import React from 'react';
 
-export default function Home() {
-  const router = useRouter();
+const Home = () => {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <h1 className="text-xl font-semibold text-gray-800">
+        Welcome! This is where the Endurance Training Tracking App will be developed.
+      </h1>
+    </div>
+  );
+};
 
-  useEffect(() => {
-    router.replace('/today');
-  }, [router]);
-
-  return null;
-}
+export default Home;

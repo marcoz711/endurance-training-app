@@ -6,12 +6,6 @@ import { useEffect } from 'react';
 function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
-  useEffect(() => {
-    // Redirect to /today if the path is /
-    if (router.pathname === '/') {
-      router.push('/today');
-    }
-  }, [router]);
 
   return <Component {...pageProps} />;
 }
