@@ -34,7 +34,7 @@ const Today = () => {
         const todayPlannedActivities = trainingPlanData.filter(
           (activity: any) => activity.date === todayDate
         );
-        const recentActivities = activityLogData.slice(0, 2);
+        const recentActivities = activityLogData.slice(0, 5);
 
         // Log the recent activities to check the format of duration
         console.log("Fetched Recent Activities:", recentActivities);
