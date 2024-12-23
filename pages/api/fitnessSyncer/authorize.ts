@@ -12,9 +12,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "CLIENT_ID or REDIRECT_URI is missing" });
   }
 
-  const authorizationUrl = `${FITNESS_SYNCER_BASE_URL}?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(
+  const authorizationUrl = `${FITNESS_SYNCER_BASE_URL}?client_id=${CLIENT_ID}&response_type=code&scope=Sources&redirect_uri=${encodeURIComponent(
     REDIRECT_URI
-  )}&scope=sources&state=${state}`;
+  )}&state=${state}`;
 
   console.log("Redirecting to FitnessSyncer Authorization URL:", authorizationUrl);
 
