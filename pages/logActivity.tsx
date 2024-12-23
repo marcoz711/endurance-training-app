@@ -129,11 +129,11 @@ const LogActivity = () => {
         notes: '',
       });
 
-      await fetch('/api/calculateWeeklyMetrics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: formData.date }),
-      });
+    //  await fetch('/api/calculateWeeklyMetrics', {
+    //    method: 'POST',
+    //    headers: { 'Content-Type': 'application/json' },
+    //    body: JSON.stringify({ date: formData.date }),
+    //  });
 
       router.push('/today');
     } else {

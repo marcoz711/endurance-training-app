@@ -1,10 +1,12 @@
 // pages/api/activityLog.ts
 import { NextApiRequest, NextApiResponse } from 'next';
 import { google } from 'googleapis';
-import { GOOGLE_SHEETS_ID, GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY } from '../../src/config';
+import { GOOGLE_SHEETS_ID, GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY } from '@/src/config';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
+    const { startDate, endDate } = req.query;
+
     // Set up Google Sheets API client
     const auth = new google.auth.JWT(
       GOOGLE_CLIENT_EMAIL,
@@ -24,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'No data found in Activity Log' });
     }
 
-    // Transform the data
+    // Transform and filter data
     const data = rows.slice(1).map((row) => ({
       date: row[0] || null,
       timestamp: row[1] || null,
@@ -41,10 +43,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       notes: row[12] || null,
     }));
 
-    // Sort by date in descending order
-    data.sort((a, b) => (a.date < b.date ? 1 : -1));
+    const filteredData = data.filter((activity) => {
+      const activityDate = new Date(activity.date);
+      if (startDate && new Date(startDate as string) > activityDate) return false;
+      if (endDate && new Date(endDate as string) < activityDate) return false;
+      return true;
+    });
 
-    res.status(200).json(data);
+    // Sort by date in descending order
+    filteredData.sort((a, b) => (a.date < b.date ? 1 : -1));
+
+    res.status(200).json(filteredData);
   } catch (error) {
     console.error('Error fetching Activity Log data:', error);
     res.status(500).json({ error: 'Internal server error' });

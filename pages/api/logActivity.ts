@@ -3,7 +3,6 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { google } from 'googleapis';
 import { GOOGLE_SHEETS_ID, GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY } from '../../src/config';
 
-// Validation function to ensure correct data format and values
 const validateRequestBody = (body: any) => {
   const durationPattern = /^(\d{2}):(\d{2}):(\d{2})$/;
   const pacePattern = /^(\d{2}):(\d{2}):(\d{2})$/;
@@ -32,16 +31,36 @@ const validateRequestBody = (body: any) => {
   });
 };
 
+const triggerWeeklyMetricsCalculation = async (date: string) => {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    console.log('Calling calculateWeeklyMetrics API with URL:', `${baseUrl}/api/calculateWeeklyMetrics`);
+
+    const response = await fetch(`${baseUrl}/api/calculateWeeklyMetrics`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Weekly metrics calculation failed with response:', errorData);
+      throw new Error('Failed to calculate weekly metrics.');
+    }
+
+    console.log('Weekly metrics calculation successful.');
+  } catch (error) {
+    console.error('Error triggering weekly metrics calculation:', error.message);
+    throw error;
+  }
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const {
-    date, timestamp, exercise_type, duration, distance,
-    avg_hr, max_hr, z2_percent, above_z2_percent, below_z2_percent,
-    pace, notes
-  } = req.body;
+  console.log('logActivity API called with data:', req.body); // Verify the API call and request body
 
   try {
     validateRequestBody(req.body);
@@ -62,16 +81,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [[
-          date, timestamp, exercise_type, duration, distance || '',
-          avg_hr || '', max_hr || '', z2_percent || '', above_z2_percent || '', below_z2_percent || '',
-          pace || '', '', notes || ''
+          req.body.date, req.body.timestamp, req.body.exercise_type, req.body.duration,
+          req.body.distance || '', req.body.avg_hr || '', req.body.max_hr || '',
+          req.body.z2_percent || '', req.body.above_z2_percent || '', req.body.below_z2_percent || '',
+          req.body.pace || '', '', req.body.notes || ''
         ]],
       },
     });
 
-    res.status(200).json({ message: 'Activity logged successfully' });
+    console.log('Activity logged successfully in Google Sheets.'); // Log success for activity logging
+
+    // Trigger weekly metrics calculation
+    console.log('Attempting to trigger weekly metrics calculation...');
+    await triggerWeeklyMetricsCalculation(req.body.date);
+
+    res.status(200).json({ message: 'Activity logged successfully and metrics updated.' });
   } catch (error) {
-    console.error('Error logging activity:', error);
+    console.error('Error logging activity or calculating metrics:', error.message);
     res.status(400).json({ error: error.message });
   }
 }

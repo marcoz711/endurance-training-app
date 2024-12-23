@@ -18,17 +18,20 @@
     "chart.js": "^4.4.6",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
+    "fit-decoder": "^1.0.5",
     "google-auth-library": "^9.14.2",
     "googleapis": "^144.0.0",
     "lucide-react": "^0.454.0",
     "minimist": "^1.2.8",
     "next": "^15.0.2",
+    "qs": "^6.13.1",
     "react": "^18.0.0",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.0.0",
     "react-icons": "^5.3.0",
     "recharts": "^2.13.3",
-    "tough-cookie": "^5.0.0"
+    "tough-cookie": "^5.0.0",
+    "xml2js": "^0.6.2"
   },
   "devDependencies": {
     "@types/node": "^22.8.7",
