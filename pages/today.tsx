@@ -115,7 +115,7 @@ const Today = () => {
               ))}
               <Button variant="ghost" className="mt-2 text-blue-600 hover:text-blue-700 w-full flex items-center justify-center" onClick={handleLogActivity}>
                 <Plus className="h-4 w-4 mr-2" />
-                Log Activity
+                Log Activity Now
               </Button>
             </CardContent>
           </Card>
