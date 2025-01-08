@@ -2,7 +2,6 @@
 
 import { NextApiRequest, NextApiResponse } from 'next';
 import { google } from 'googleapis';
-import { GOOGLE_SHEETS_ID, GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY } from '../../src/config';
 
 // Helper function to format total seconds into HH:MM:SS
 function formatPace(value: string): string {
@@ -22,15 +21,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     // Set up Google Sheets API client
     const auth = new google.auth.JWT(
-      GOOGLE_CLIENT_EMAIL,
+      process.env.GOOGLE_CLIENT_EMAIL,
       undefined,
-      GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
       ['https://www.googleapis.com/auth/spreadsheets.readonly']
     );
     const sheets = google.sheets({ version: 'v4', auth });
 
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: GOOGLE_SHEETS_ID,
+      spreadsheetId: process.env.GOOGLE_SHEETS_ID,
       range: 'ProgressMetrics',
     });
 

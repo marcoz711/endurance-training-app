@@ -1,7 +1,6 @@
 // pages/api/calculateWeeklyMetrics.ts
 import { NextApiRequest, NextApiResponse } from 'next';
 import { google } from 'googleapis';
-import { GOOGLE_SHEETS_ID, GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY } from '../../src/config';
 
 // Utility to parse pace (HH:MM:SS) into total seconds
 function parsePace(pace: string): number {
@@ -30,16 +29,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     // Set up Google Sheets API client
     const auth = new google.auth.JWT(
-      GOOGLE_CLIENT_EMAIL,
+      process.env.GOOGLE_CLIENT_EMAIL,
       undefined,
-      GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
       ['https://www.googleapis.com/auth/spreadsheets']
     );
     const sheets = google.sheets({ version: 'v4', auth });
 
     // Fetch all activity logs from the "ActivityLog" sheet
     const activityData = await sheets.spreadsheets.values.get({
-      spreadsheetId: GOOGLE_SHEETS_ID,
+      spreadsheetId: process.env.GOOGLE_SHEETS_ID,
       range: 'ActivityLog',
     });
 
@@ -88,13 +87,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Clear the ProgressMetrics tab
     await sheets.spreadsheets.values.clear({
-      spreadsheetId: GOOGLE_SHEETS_ID,
+      spreadsheetId: process.env.GOOGLE_SHEETS_ID,
       range: 'ProgressMetrics',
     });
 
     // Write metrics to the ProgressMetrics tab
     await sheets.spreadsheets.values.append({
-      spreadsheetId: GOOGLE_SHEETS_ID,
+      spreadsheetId: process.env.GOOGLE_SHEETS_ID,
       range: 'ProgressMetrics',
       valueInputOption: 'USER_ENTERED',
       requestBody: {
