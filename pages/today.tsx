@@ -72,10 +72,6 @@ const Today = () => {
     router.push('/logActivity');
   };
 
-  const handleConnectStrava = () => {
-    window.location.href = '/api/strava/auth';
-  };
-
   if (isLoading) {
     return (
       <Layout>
@@ -174,12 +170,6 @@ const Today = () => {
               ))}
             </CardContent>
           </Card>
-          <button
-            onClick={handleConnectStrava}
-            className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
-          >
-            Connect to Strava
-          </button>
         </div>
       </ScrollArea>
     </Layout>
