@@ -1,47 +1,53 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import fetch from "node-fetch";
 import { getValidAccessToken } from "../../../utils/refreshToken";
-import { saveDataSources } from "../../../utils/saveDataSources";
 
 const FITNESS_SYNCER_API_SOURCES_URL = "https://api.fitnesssyncer.com/api/providers/sources/";
 
+interface DataSource {
+  date: number;
+  filter: object;
+  name: string;
+  id: string;
+  type: string;
+  enabled: boolean;
+  providerType: string;
+  group: string;
+}
+
+interface FitnessSyncerResponse {
+  items: DataSource[];
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   try {
-    const accessToken = await getValidAccessToken(); // Get a valid access token
-
-    console.log("Making API request to FitnessSyncer:");
-    console.log(`URL: ${FITNESS_SYNCER_API_SOURCES_URL}`);
-    console.log(`Headers: Authorization: Bearer ${accessToken}`);
-
-    // Fetch data sources from the FitnessSyncer API
+    const accessToken = await getValidAccessToken();
     const response = await fetch(FITNESS_SYNCER_API_SOURCES_URL, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
       },
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`API Response Error: ${response.status}: ${errorText}`);
       throw new Error(`FitnessSyncer API responded with ${response.status}: ${errorText}`);
     }
 
-    const { items: dataSources } = await response.json();
+    const rawResponse = (await response.json()) as FitnessSyncerResponse;
+    console.log("Raw API response:", rawResponse);
 
-    console.log("Received API response:", dataSources);
+    // Access the `items` property of the response
+    const dataSources = rawResponse.items || [];
+    console.log("Parsed data sources:", dataSources);
 
-    // Save data sources to Google Sheets
-    const formattedDataSources = dataSources.map((source: any) => ({
-      id: source.id,
-      name: source.name,
-    }));
-    await saveDataSources(formattedDataSources);
-
-    res.status(200).json({ success: true, dataSources });
+    res.status(200).json({ dataSources });
   } catch (error: any) {
-    console.error("Error fetching FitnessSyncer data sources:", error.message);
+    console.error("Error fetching data sources:", error.message);
     res.status(500).json({ error: error.message });
   }
 }
