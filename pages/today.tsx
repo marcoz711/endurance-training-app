@@ -80,6 +80,23 @@ const Today = () => {
     );
   }
 
+  const syncActivities = async () => {
+    try {
+      const response = await fetch('/api/fitnessSyncer/syncActivities', { method: 'POST' });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Sync failed');
+      }
+
+      alert(`Successfully synced ${result.newActivities} new activities!`);
+    } catch (error) {
+      console.error('Sync error:', error);
+      alert('Sync failed. Please try again.');
+    }
+  };
+
+
   return (
     <Layout>
       <ScrollArea>
@@ -122,7 +139,18 @@ const Today = () => {
 
           <Card className="p-4 shadow-md rounded-lg">
             <CardHeader>
-              <CardTitle>Recent Activities</CardTitle>
+              <div className="flex justify-between items-center w-full">
+                <CardTitle>Recent Activities</CardTitle>
+                <span
+                  onClick={async () => {
+                    await syncActivities();
+                    location.reload(); // Reload the page to show updated activities
+                  }}
+                  className="text-blue-600 hover:underline cursor-pointer text-sm"
+                >
+                  Sync Activities
+                </span>
+              </div>
             </CardHeader>
             <CardContent>
               {recentActivities.map((activity, idx) => (

@@ -6,7 +6,8 @@ import { GetServerSideProps } from 'next';
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend } from 'chart.js';
 import dayjs from 'dayjs';
-import { FaArrowUp, FaArrowDown } from 'react-icons/fa'; // Import arrow icons
+import { FaArrowUp, FaArrowDown } from 'react-icons/fa';
+import { useState } from 'react';
 
 // Register necessary components for chart.js
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
@@ -28,14 +29,20 @@ export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   return { props: { progressData } };
 };
 
-
-// Helper function to convert HH:MM:SS pace format to decimal hours
+// Helper function to convert HH:MM:SS or M:SS pace format to decimal hours
 const convertPaceToHours = (pace: string): number => {
-  const [hours, minutes, seconds] = pace.split(':').map(Number);
-  return hours + minutes / 60 + seconds / 3600;
+  const parts = pace.split(':').map(Number);
+  if (parts.length === 3) {
+    const [hours, minutes, seconds] = parts;
+    return hours + minutes / 60 + seconds / 3600;
+  } else if (parts.length === 2) {
+    const [minutes, seconds] = parts;
+    return minutes / 60 + seconds / 3600;
+  }
+  return 0; // Fallback if format is incorrect
 };
 
-// Helper function to convert decimal hours back to HH:MM:SS format
+// Helper function to convert decimal hours back to HH:MM:SS or M:SS format
 const formatHoursToPace = (decimalHours: number): string => {
   const isNegative = decimalHours < 0;
   const absoluteHours = Math.abs(decimalHours);
@@ -44,49 +51,85 @@ const formatHoursToPace = (decimalHours: number): string => {
   const minutes = Math.floor((absoluteHours - hours) * 60);
   const seconds = Math.round(((absoluteHours - hours) * 60 - minutes) * 60);
 
-  return `${isNegative ? '-' : ''}${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  if (hours > 0) {
+    return `${isNegative ? '-' : ''}${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+
+  return `${isNegative ? '-' : ''}${minutes}:${seconds.toString().padStart(2, '0')}`;
 };
 
-const calculateWeeklyAverages = (data: ProgressMetric[], metricType: string, isPace = false) => {
-  // Step 1: Filter and organize data by week
+const calculateWeeklyAverages = (
+  data: ProgressMetric[],
+  metricType: string,
+  isPace = false,
+  allWeeks: string[] = []
+) => {
   const uniqueWeeklyData = Array.from(
     new Map(
       data
         .filter((metric) => metric.metric_type === metricType)
-        .map((item) => [dayjs(item.date).startOf('week').format('YYYY-MM-DD'), item])
+        .map((item) => [dayjs(item.date).startOf('week').add(1, 'day').format('YYYY-MM-DD'), item])
     ).values()
   );
 
-  const recentWeeks = uniqueWeeklyData
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5)
-    .reverse();
+  const weeks = allWeeks.length > 0 ? allWeeks : uniqueWeeklyData.map((item) => dayjs(item.date).startOf('week').add(1, 'day').format('YYYY-MM-DD'));
 
-  // Step 2: Convert values to decimal hours (for pace) or numbers
-  const weeklyAverages = recentWeeks.map((item) => {
-    return isPace && typeof item.value === 'string' ? convertPaceToHours(item.value) : Number(item.value);
+  const weeklyAverages = weeks.map((week) => {
+    const entry = uniqueWeeklyData.find((item) => dayjs(item.date).startOf('week').add(1, 'day').format('YYYY-MM-DD') === week);
+    if (entry && entry.value !== 'N/A') {
+      return isPace && typeof entry.value === 'string' ? convertPaceToHours(entry.value) : Number(entry.value);
+    }
+    return 0; // Default to 0 for missing data
   });
 
-  const dates = recentWeeks.map((item) => dayjs(item.date).format('MM/DD'));
-  const currentAverage = weeklyAverages[weeklyAverages.length - 1] || 0;
+  const dates = weeks.map((week) => dayjs(week).format('MM/DD'));
 
-  // Step 3: Calculate change over 5 weeks
+  const validAverages = weeklyAverages.filter((value) => value !== null) as number[];
+  const currentAverage = validAverages[validAverages.length - 1] || 0;
+
   let change;
-  if (weeklyAverages.length >= 2) {
-    const difference = weeklyAverages[weeklyAverages.length - 1] - weeklyAverages[0];
-
-    // Format as HH:MM:SS if it's a pace metric
-    change = isPace && !isNaN(difference) ? formatHoursToPace(difference) : +difference.toFixed(1);
+  if (validAverages.length >= 2) {
+    const difference = validAverages[validAverages.length - 1] - validAverages[0];
+    change = isPace
+      ? formatHoursToPace(difference)
+      : `${((difference / validAverages[0]) * 100).toFixed(1)}%`;
   } else {
-    change = isPace ? "00:00:00" : 0;
+    change = isPace ? '00:00' : '0%';
   }
 
   return { weeklyAverages, currentAverage, dates, change };
 };
 
 const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
-  const { weeklyAverages: zone2Averages, currentAverage: currentZone2, dates: zone2Dates, change: zone2Change } = calculateWeeklyAverages(progressData, "weekly_z2_average");
-  const { weeklyAverages: paceAverages, currentAverage: currentPace, dates: paceDates, change: paceChange } = calculateWeeklyAverages(progressData, "weekly_pace", true);
+  const [range, setRange] = useState<'all' | '12weeks' | '6weeks'>('6weeks'); // Default to 6 weeks
+
+  const filterByRange = (data: ProgressMetric[], range: 'all' | '12weeks' | '6weeks') => {
+    const weeksToInclude = {
+      '6weeks': 6,
+      '12weeks': 12,
+    }[range];
+
+    if (range === 'all') return data;
+
+    const today = dayjs();
+    return data.filter((item) => {
+      const weeksAgo = today.diff(dayjs(item.date), 'week');
+      return weeksAgo < weeksToInclude;
+    });
+  };
+
+  const filteredProgressData = filterByRange(progressData, range);
+
+  const allWeeks = Array.from(
+    new Set(
+      filteredProgressData.map((item) => dayjs(item.date).startOf('week').add(1, 'day').format('YYYY-MM-DD'))
+    )
+  ).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+  const { weeklyAverages: zone2Averages, currentAverage: currentZone2, dates: zone2Dates, change: zone2Change } =
+    calculateWeeklyAverages(filteredProgressData, 'weekly_z2_average', false, allWeeks);
+  const { weeklyAverages: paceAverages, currentAverage: currentPace, dates: paceDates, change: paceChange } =
+    calculateWeeklyAverages(filteredProgressData, 'weekly_pace', true, allWeeks);
 
   const zone2ChartData = {
     labels: zone2Dates,
@@ -94,7 +137,7 @@ const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
       {
         data: zone2Averages,
         fill: false,
-        borderColor: "#3b82f6",
+        borderColor: '#3b82f6',
         borderWidth: 2,
         pointRadius: 3,
         tension: 0.2,
@@ -108,36 +151,12 @@ const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
       {
         data: paceAverages,
         fill: false,
-        borderColor: "#ef4444",
+        borderColor: '#ef4444',
         borderWidth: 2,
         pointRadius: 3,
         tension: 0.2,
       },
     ],
-  };
-
-  const zone2ChartOptions = {
-    plugins: {
-      legend: {
-        display: false,
-      },
-    },
-    scales: {
-      x: {
-        display: true,
-      },
-      y: {
-        display: true,
-        ticks: {
-          callback: (value: any) => `${value}%`, // Display as percentage
-        },
-        grid: {
-          display: true,
-          color: "#e5e7eb",
-          lineWidth: 0.5,
-        },
-      },
-    },
   };
 
   const paceChartOptions = {
@@ -153,11 +172,11 @@ const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
       y: {
         display: true,
         ticks: {
-          callback: (value: any) => formatHoursToPace(value as number), // Display as HH:MM:SS for pace
+          callback: (value: any) => formatHoursToPace(value as number),
         },
         grid: {
           display: true,
-          color: "#e5e7eb",
+          color: '#e5e7eb',
           lineWidth: 0.5,
         },
       },
@@ -167,13 +186,33 @@ const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Zone 2 Progress */}
+        <div className="flex justify-end space-x-4">
+          <button
+            onClick={() => setRange('6weeks')}
+            className={`px-4 py-2 rounded ${range === '6weeks' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+          >
+            Last 6 Weeks
+          </button>
+          <button
+            onClick={() => setRange('12weeks')}
+            className={`px-4 py-2 rounded ${range === '12weeks' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+          >
+            Last 12 Weeks
+          </button>
+          <button
+            onClick={() => setRange('all')}
+            className={`px-4 py-2 rounded ${range === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+          >
+            All Weeks
+          </button>
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle>Zone 2 Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <Line data={zone2ChartData} options={zone2ChartOptions} />
+            <Line data={zone2ChartData} options={{ plugins: { legend: { display: false } } }} />
             <div className="flex justify-between items-end mt-4">
               <div className="text-left">
                 <p className="text-sm text-gray-500">Current</p>
@@ -181,18 +220,15 @@ const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-500">Change</p>
-                <div className={`flex items-center ${zone2Change >= 0 ? 'text-green-500' : 'text-red-500'} text-l`}>
-                  {zone2Change >= 0 ? <FaArrowUp /> : <FaArrowDown />}
-                  <span className="ml-1">
-                    {zone2Change >= 0 ? `+${zone2Change}%` : `${zone2Change}%`} in 5 weeks
-                  </span>
+                <div className={`flex items-center ${zone2Change.startsWith('-') ? 'text-red-500' : 'text-green-500'} text-l`}>
+                  {zone2Change.startsWith('-') ? <FaArrowDown /> : <FaArrowUp />}
+                  <span className="ml-1">{zone2Change} in {range === 'all' ? 'all time' : range.replace('weeks', ' weeks')}</span>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Pace Progress */}
         <Card>
           <CardHeader>
             <CardTitle>Pace Progress</CardTitle>
@@ -206,11 +242,9 @@ const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-500">Change</p>
-                <div className={`flex items-center ${paceChange.startsWith('-') ? 'text-green-500' : 'text-red-500'} text-l`}>
-                  {paceChange.startsWith('-') ? <FaArrowDown /> : <FaArrowUp />}
-                  <span className="ml-1">
-                    {paceChange.startsWith('-') ? paceChange : `+${paceChange}`} in 5 weeks
-                  </span>
+                <div className={`flex items-center ${String(paceChange).startsWith('-') ? 'text-green-500' : 'text-red-500'} text-l`}>
+                  {String(paceChange).startsWith('-') ? <FaArrowDown /> : <FaArrowUp />}
+                  <span className="ml-1">{paceChange} in {range === 'all' ? 'all time' : range.replace('weeks', ' weeks')}</span>
                 </div>
               </div>
             </div>
