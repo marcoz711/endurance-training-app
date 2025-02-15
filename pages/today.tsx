@@ -61,6 +61,7 @@ const Today = () => {
   const getActivityIcon = (type: string) => {
     switch (type.toLowerCase()) {
       case 'run':
+      case 'running':
       case 'zone 2 run':
         return <Footprints className="mt-1 h-5 w-5 text-blue-600" />;
       case 'strength':
