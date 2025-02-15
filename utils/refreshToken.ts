@@ -41,6 +41,15 @@ export async function getValidAccessToken(retryCount = 0): Promise<string> {
       throw new Error('Missing required tokens in Config sheet');
     }
 
+    // Add validation for refresh token format
+    if (!refreshToken || refreshToken.length < 10) {  // Adjust length check based on expected token length
+      console.error('Invalid refresh token format:', {
+        tokenLength: refreshToken?.length,
+        tokenPreview: refreshToken ? `${refreshToken.substring(0, 5)}...` : 'null'
+      });
+      throw new Error('Invalid refresh token format');
+    }
+
     const tokenExpiry = new Date(parseInt(expiryTime) * 1000); // Convert UNIX timestamp to Date
     
     // Convert current time to UTC for consistent comparison
@@ -59,12 +68,30 @@ export async function getValidAccessToken(retryCount = 0): Promise<string> {
 
     if (tokenExpiry < bufferTime) {
       try {
-        const refreshResponse = await axios.post("https://api.fitnesssyncer.com/api/auth/token", {
-          grant_type: "refresh_token",
-          refresh_token: refreshToken,
+        // Log the request data for debugging
+        console.log('Attempting token refresh with data:', {
+          refresh_token: refreshToken?.substring(0, 5) + '...',
           client_id: process.env.FITNESSSYNCER_CLIENT_ID,
-          client_secret: process.env.FITNESSSYNCER_CLIENT_SECRET,
+          client_secret_length: process.env.FITNESSSYNCER_CLIENT_SECRET?.length,
+          redirect_uri: process.env.FITNESSSYNCER_REDIRECT_URI
         });
+
+        const formData = new URLSearchParams();
+        formData.append('grant_type', 'refresh_token');
+        formData.append('refresh_token', refreshToken);
+        formData.append('client_id', process.env.FITNESSSYNCER_CLIENT_ID || '');
+        formData.append('client_secret', process.env.FITNESSSYNCER_CLIENT_SECRET || '');
+        formData.append('redirect_uri', process.env.FITNESSSYNCER_REDIRECT_URI || '');
+
+        const refreshResponse = await axios.post(
+          "https://api.fitnesssyncer.com/api/oauth/access_token",
+          formData,
+          {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            }
+          }
+        );
 
         // Calculate new expiry time in UTC
         const expiresIn = refreshResponse.data.expires_in;
@@ -86,15 +113,10 @@ export async function getValidAccessToken(retryCount = 0): Promise<string> {
 
         return refreshResponse.data.access_token;
       } catch (error) {
-        console.error("Refresh token error details:", {
-          status: error.response?.status,
-          data: error.response?.data,
-          headers: error.response?.headers,
-          config: {
-            url: error.config?.url,
-            method: error.config?.method,
-            data: error.config?.data
-          }
+        console.error('Token refresh failed:', {
+          error: error.message,
+          response: error.response?.data,
+          status: error.response?.status
         });
         throw error;
       }
