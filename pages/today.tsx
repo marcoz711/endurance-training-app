@@ -121,6 +121,14 @@ const Today = () => {
               <h3 className="text-lg font-semibold text-gray-800 mb-1">
                 Today's Training - {format(new Date(), 'EEEE, MMM d')}
               </h3>
+              <button
+                onClick={handleLogActivity}
+                className="px-4 py-2 bg-white text-blue-600 rounded-md 
+                  disabled:bg-gray-100 disabled:text-blue-400
+                  hover:bg-blue-50 flex items-center gap-2"
+              >
+                Log Activity
+              </button>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -144,10 +152,6 @@ const Today = () => {
                 </div>
               </div>
             ))}
-            <Button variant="ghost" className="mt-2 text-blue-600 hover:text-blue-700 w-full flex items-center justify-center" onClick={handleLogActivity}>
-              <Plus className="h-4 w-4 mr-2" />
-              Log Activity Now
-            </Button>
           </CardContent>
         </Card>
         <Card className="mb-4">
