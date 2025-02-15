@@ -4,7 +4,6 @@ import fetch from "node-fetch";
 import { getValidAccessToken } from "../../../utils/refreshToken";
 import axios from "axios";
 import { GoogleSheetsService } from "../../../services/googleSheets";
-import { handleApiError } from "../../../utils/errors";
 import { withRateLimit } from "../../../middleware/rateLimit";
 import { ActivityLogEntry } from "../../../types/activity";
 import { validateActivityLog } from "../../../utils/validation";
@@ -244,7 +243,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
       const formattedDate = activityDate ? activityDate.toISOString().split("T")[0] : "N/A";
       const formattedTimestamp = activityDate
-        ? activityDate.toLocaleTimeString("en-US", { hour12: false })
+        ? activityDate.toLocaleTimeString("en-US", { 
+            hour12: false,
+            timeZone: 'Europe/Berlin'
+          })
         : "N/A";
 
       const { z2_percent, above_z2_percent, below_z2_percent } = calculateZonePercentages(
