@@ -129,7 +129,7 @@ async function writeToActivityLogSheet(auth: any, data: any[]) {
 async function getSourceId(service: GoogleSheetsService): Promise<string> {
   try {
     console.log('Attempting to read from Google Sheets...');
-    const response = await service.sheets.spreadsheets.values.get({
+    const response = await service.getSheetValues({
       spreadsheetId: process.env.GOOGLE_SHEETS_ID,
       range: 'FitnessSyncerDataSources!A2:B2',
     });
