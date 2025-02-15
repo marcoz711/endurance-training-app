@@ -1,9 +1,9 @@
 // pages/today.tsx
 
 import Layout from '../components/Layout';
-import { Card, CardHeader, CardContent, CardTitle } from '../components/ui/Card';
+import { Card, CardHeader, CardContent } from '../components/ui/Card';
 import Button from "@/components/ui/Button";
-import { Footprints, Dumbbell, Activity, Plus } from 'lucide-react';
+import { Footprints, Dumbbell, Activity, Bike } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -59,16 +59,17 @@ const Today = () => {
   }, [todayDate]);
 
   const getActivityIcon = (type: string) => {
-    switch (type.toLowerCase()) {
-      case 'run':
-      case 'running':
-      case 'zone 2 run':
-        return <Footprints className="mt-1 h-5 w-5 text-blue-600" />;
-      case 'strength':
-        return <Dumbbell className="mt-1 h-5 w-5 text-purple-600" />;
-      default:
-        return <Activity className="mt-1 h-5 w-5 text-teal-600" />;
+    const lowerType = type.toLowerCase();
+    if (lowerType.includes('run')) {
+      return <Footprints className="mt-1 h-5 w-5 text-blue-600" />;
     }
+    if (lowerType.includes('bike') || lowerType.includes('cycling')) {
+      return <Bike className="mt-1 h-5 w-5 text-green-600" />;
+    }
+    if (lowerType === 'strength') {
+      return <Dumbbell className="mt-1 h-5 w-5 text-purple-600" />;
+    }
+    return <Activity className="mt-1 h-5 w-5 text-teal-600" />;
   };
 
   function formatDate(dateString: string): string {
@@ -186,52 +187,65 @@ const Today = () => {
             </CardHeader>
             
             <CardContent className="space-y-4">
-              {displayedActivities?.map((activity: ActivityLogEntry) => (
-                <div 
-                  key={`${activity.date}-${activity.timestamp}`} 
-                  className="p-4 rounded-lg border bg-gray-50"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-top gap-2">
-                      {getActivityIcon(activity.exercise_type)}
-                      <div>
-                        <span className="font-medium">{activity.exercise_type}</span>
-                        {activity.duration && (
-                          <div className="text-sm text-gray-500">
-                            Duration: {activity.duration}
+              {displayedActivities?.map((activity: ActivityLogEntry) => {
+                const isRunning = activity.exercise_type.toLowerCase().includes('run');
+                const isBiking = activity.exercise_type.toLowerCase().includes('bike') || 
+                                 activity.exercise_type.toLowerCase().includes('cycling');
+                const isWalking = activity.exercise_type.toLowerCase().includes('walk');
+                const isSwimming = activity.exercise_type.toLowerCase().includes('swim');
+                const shouldShowDistance = isRunning || isBiking || isWalking || isSwimming;
+                
+                return (
+                  <div 
+                    key={`${activity.date}-${activity.timestamp}`} 
+                    className="p-4 rounded-lg border bg-gray-50"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-top gap-2">
+                        {getActivityIcon(activity.exercise_type)}
+                        <div>
+                          <span className="font-medium">{activity.exercise_type}</span>
+                          {activity.duration && (
+                            <div className="text-sm text-gray-500">
+                              Duration: {activity.duration}
+                            </div>
+                          )}
+                          {activity.notes && (
+                            <div className="text-sm text-gray-500"> Note: {activity.notes}</div>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-sm text-gray-500">{formatDate(activity.date)}</span>
+                    </div>
+                    {shouldShowDistance && (
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        {activity.distance && (
+                          <div className="bg-blue-100 rounded p-2 text-center">
+                            <div className="text-xs text-blue-600">Distance</div>
+                            <div className="text-sm font-medium">{activity.distance} km</div>
                           </div>
                         )}
-                        {activity.notes && (
-                          <div className="text-sm text-gray-500"> Note: {activity.notes}</div>
+                        {isRunning && (
+                          <>
+                            {activity.z2_percent && (
+                              <div className="bg-green-100 rounded p-2 text-center">
+                                <div className="text-xs text-green-600">Zone 2</div>
+                                <div className="text-sm font-medium">{activity.z2_percent}%</div>
+                              </div>
+                            )}
+                            {activity.pace && (
+                              <div className="bg-purple-100 rounded p-2 text-center">
+                                <div className="text-xs text-purple-600">Pace</div>
+                                <div className="text-sm font-medium">{activity.pace}/km</div>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
-                    </div>
-                    <span className="text-sm text-gray-500">{formatDate(activity.date)}</span>
+                    )}
                   </div>
-                  {(activity.distance || activity.z2_percent || activity.pace) && (
-                    <div className="grid grid-cols-3 gap-2 mt-2">
-                      {activity.distance && (
-                        <div className="bg-blue-100 rounded p-2 text-center">
-                          <div className="text-xs text-blue-600">Distance</div>
-                          <div className="text-sm font-medium">{activity.distance} km</div>
-                        </div>
-                      )}
-                      {activity.z2_percent && (
-                        <div className="bg-green-100 rounded p-2 text-center">
-                          <div className="text-xs text-green-600">Zone 2</div>
-                          <div className="text-sm font-medium">{activity.z2_percent}%</div>
-                        </div>
-                      )}
-                      {activity.pace && (
-                        <div className="bg-purple-100 rounded p-2 text-center">
-                          <div className="text-xs text-purple-600">Pace</div>
-                          <div className="text-sm font-medium">{activity.pace}/km</div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
               
               {/* Load More Button */}
               {sortedActivities && displayCount < sortedActivities.length && (
