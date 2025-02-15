@@ -59,8 +59,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  console.log('logActivity API called with data:', req.body); // Verify the API call and request body
-
   try {
     validateRequestBody(req.body);
 
@@ -115,8 +113,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ]]
       }
     });
-
-    console.log('Activity logged successfully in Google Sheets.'); // Log success for activity logging
 
     // Trigger weekly metrics calculation
     console.log('Attempting to trigger weekly metrics calculation...');

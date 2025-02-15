@@ -6,7 +6,6 @@ const LOG_SHEET_NAME = "TokenRefreshLog";
 
 export async function getValidAccessToken(retryCount = 0): Promise<string> {
   const MAX_RETRIES = 2;
-  console.log(`Attempt ${retryCount + 1} to get valid access token...`);
 
   try {
     // Set up Google Sheets API client
@@ -19,15 +18,9 @@ export async function getValidAccessToken(retryCount = 0): Promise<string> {
     const sheets = google.sheets({ version: "v4", auth });
 
     // Get tokens from Config sheet
-    console.log('Fetching tokens from Config sheet...');
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.GOOGLE_SHEETS_ID,
       range: CONFIG_SHEET_NAME,
-    });
-
-    console.log('Config sheet response:', {
-      hasValues: !!response.data.values,
-      rowCount: response.data.values?.length,
     });
 
     if (!response.data.values) {
@@ -50,12 +43,6 @@ export async function getValidAccessToken(retryCount = 0): Promise<string> {
 
     const tokenExpiry = new Date(parseInt(expiryTime) * 1000); // Convert UNIX timestamp to Date
     
-    console.log('Found tokens:', {
-      hasAccessToken: !!accessToken,
-      hasRefreshToken: !!refreshToken,
-      tokenExpiry: tokenExpiry.toISOString()
-    });
-
     // Convert current time to UTC for consistent comparison
     const now = new Date();
     const utcNow = new Date(Date.UTC(
@@ -71,7 +58,6 @@ export async function getValidAccessToken(retryCount = 0): Promise<string> {
     const bufferTime = new Date(utcNow.getTime() + 5 * 60 * 1000);
 
     if (tokenExpiry < bufferTime) {
-      console.log("Access Token expired or expiring soon. Refreshing...");
       try {
         const refreshResponse = await axios.post("https://api.fitnesssyncer.com/api/auth/token", {
           grant_type: "refresh_token",

@@ -18,6 +18,9 @@ function formatPace(value: string): string {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Remove debug log
+  // console.log("Fetching progress metrics...");
+  
   try {
     // Set up Google Sheets API client
     const auth = new google.auth.JWT(
@@ -61,9 +64,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Sort by date in descending order
     data.sort((a, b) => (a.date < b.date ? 1 : -1));
 
+    // Remove debug log
+    // console.log("Progress metrics fetched successfully");
     res.status(200).json(data);
   } catch (error) {
-    console.error('Error fetching Progress Metrics data:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    // Keep error logging for production debugging
+    console.error("Error fetching progress metrics:", error);
+    res.status(500).json({ error: "Failed to fetch progress metrics" });
   }
 }

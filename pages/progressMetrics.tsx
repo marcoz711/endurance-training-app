@@ -7,7 +7,7 @@ import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend } from 'chart.js';
 import dayjs from 'dayjs';
 import { FaArrowUp, FaArrowDown } from 'react-icons/fa';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // Register necessary components for chart.js
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
@@ -182,6 +182,20 @@ const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
       },
     },
   };
+
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        const response = await fetch('/api/progressMetrics');
+        // ... rest of the code ...
+      } catch (error) {
+        // Keep error logging for user feedback
+        console.error("Error fetching metrics:", error);
+      }
+    };
+    
+    fetchMetrics();
+  }, []);
 
   return (
     <Layout>

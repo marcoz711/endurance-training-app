@@ -128,13 +128,10 @@ async function writeToActivityLogSheet(auth: any, data: any[]) {
 
 async function getSourceId(service: GoogleSheetsService): Promise<string> {
   try {
-    console.log('Attempting to read from Google Sheets...');
     const response = await service.getSheetValues({
       spreadsheetId: process.env.GOOGLE_SHEETS_ID!,
       range: 'FitnessSyncerDataSources!A2:B2',
     });
-
-    console.log('Google Sheets response:', response.data);
 
     const rows = response.data.values;
     if (!rows || rows.length === 0) {
@@ -142,14 +139,11 @@ async function getSourceId(service: GoogleSheetsService): Promise<string> {
     }
 
     const sourceId = rows[0][0];
-    console.log('Raw source ID from sheet:', sourceId);
-
     if (!sourceId) {
       throw new Error('Source ID is empty in FitnessSyncerDataSources sheet');
     }
 
-    console.log('Successfully retrieved source ID:', sourceId);
-    return sourceId.trim(); // Add trim() to remove any potential whitespace
+    return sourceId.trim();
   } catch (error) {
     console.error('Error fetching source ID:', error);
     throw new Error(`Failed to get source ID: ${error.message}`);
@@ -157,13 +151,7 @@ async function getSourceId(service: GoogleSheetsService): Promise<string> {
 }
 
 const fetchActivities = async (accessToken: string, sourceId: string) => {
-  console.log('Making API call with:', {
-    sourceId,
-    accessToken: accessToken ? 'present' : 'missing'
-  });
-
   const url = `https://api.fitnesssyncer.com/api/providers/sources/${sourceId}/items/`;
-  console.log('API URL:', url);
 
   const response = await fetch(url, {
     headers: {
@@ -183,11 +171,6 @@ const fetchActivities = async (accessToken: string, sourceId: string) => {
   }
 
   const activitiesResponse = await response.json() as { items: any[] };
-  console.log('Raw FitnessSyncer response sample:', {
-    firstActivity: activitiesResponse.items[0],
-    hasItemId: Boolean(activitiesResponse.items[0]?.itemId),
-    itemIdValue: activitiesResponse.items[0]?.itemId
-  });
   return activitiesResponse;
 }
 
@@ -197,54 +180,42 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   try {
-    console.log("Initializing GoogleSheetsService...");
     const service = new GoogleSheetsService();
     
-    // Make a test call using the getSheetValues method instead
+    // Make a test call using the getSheetValues method
     try {
-      const testResponse = await service.getSheetValues({
+      await service.getSheetValues({
         spreadsheetId: process.env.GOOGLE_SHEETS_ID!,
         range: 'A1:A1'
       });
-      console.log('Test call successful');
     } catch (error) {
       console.error('Test call failed:', error);
       throw error;
     }
     
-    console.log("Getting access token...");
     const accessToken = await getValidAccessToken();
     if (!accessToken) {
       throw new Error("Failed to get valid access token");
     }
     
-    console.log("Getting source ID from Google Sheets...");
     const sourceId = await getSourceId(service);
     if (!sourceId) {
       throw new Error("Failed to get source ID");
     }
     
-    console.log("Fetching activities from FitnessSyncer...");
     const response = await fetchActivities(accessToken, sourceId);
     if (!response || !response.items) {
       throw new Error("Invalid response from FitnessSyncer");
     }
 
     const activities = response.items || [];
-    console.log(`Fetched ${activities.length} activities`);
-
     const mostRecentActivity = await service.getMostRecentActivity();
-    console.log('Most recent activity in sheet:', mostRecentActivity);
-
     const mostRecentTimestamp = mostRecentActivity 
       ? new Date(`${mostRecentActivity.date}T${mostRecentActivity.timestamp}`).getTime()
       : null;
 
-    console.log('Most recent timestamp:', mostRecentTimestamp);
-
     const filteredActivities = activities.filter(activity => {
       const activityTimestamp = new Date(Number(activity.date)).getTime();
-      console.log(`Comparing activity ${new Date(activityTimestamp).toISOString()} with most recent ${mostRecentTimestamp ? new Date(mostRecentTimestamp).toISOString() : 'none'}`);
       return !mostRecentTimestamp || activityTimestamp > mostRecentTimestamp;
     });
 
@@ -302,12 +273,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         source: activity.providerType,
       };
 
-      console.log('Transformed activity with itemId:', {
-        itemId: activity.itemId,
-        transformedItemId: transformedActivity.itemId,
-        activityDate: transformedActivity.date
-      });
-
       return transformedActivity;
     });
 
@@ -315,43 +280,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       validateActivityLog(activity)
     );
 
-    console.log(`Writing ${validatedActivities.length} new activities to sheet`);
     await service.updateActivityLog(validatedActivities);
     await triggerWeeklyMetricsCalculation();
 
-    console.log('Sample of activities to be written:', transformedActivities.slice(0, 2));
-
     res.status(200).json({ 
-      message: "Sync successful", 
+      message: "Activities synced successfully", 
       newActivities: validatedActivities.length 
     });
   } catch (error) {
-    console.error("Detailed API Error:", {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
-
-    // Check for specific error types
-    if (error.message.includes('credentials')) {
-      return res.status(500).json({ 
-        error: "Google Sheets authentication failed", 
-        details: error.message 
-      });
-    }
-
-    if (error.message.includes('FitnessSyncer')) {
-      return res.status(500).json({ 
-        error: "FitnessSyncer API error", 
-        details: error.message 
-      });
-    }
-
-    return res.status(500).json({ 
-      error: "Internal server error", 
-      details: error.message,
-      type: error.name
-    });
+    console.error("Error syncing activities:", error);
+    res.status(500).json({ error: "Failed to sync activities" });
   }
 }
 
