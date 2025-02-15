@@ -92,4 +92,48 @@ export class GoogleSheetsService {
       range,
     });
   }
+
+  async updateActivityLogEntry(date: string, timestamp: string, updates: Partial<ActivityLogEntry>): Promise<void> {
+    // Get all activities
+    const response = await this.sheets.spreadsheets.values.get({
+      spreadsheetId: this.spreadsheetId,
+      range: 'ActivityLog',
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      throw new Error('No activities found');
+    }
+
+    // Find the row to update
+    const headers = rows[0];
+    const dateIndex = headers.indexOf('date');
+    const timestampIndex = headers.indexOf('timestamp');
+    const rowIndex = rows.findIndex((row) => 
+      row[dateIndex] === date && row[timestampIndex] === timestamp
+    );
+
+    if (rowIndex === -1) {
+      throw new Error('Activity not found');
+    }
+
+    // Update the specific fields
+    const row = rows[rowIndex];
+    if (updates.exercise_type) {
+      row[headers.indexOf('exercise_type')] = updates.exercise_type;
+    }
+    if (updates.notes !== undefined) {
+      row[headers.indexOf('notes')] = updates.notes;
+    }
+
+    // Update the sheet
+    await this.sheets.spreadsheets.values.update({
+      spreadsheetId: this.spreadsheetId,
+      range: `ActivityLog!A${rowIndex + 1}:${String.fromCharCode(65 + headers.length)}${rowIndex + 1}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [row],
+      },
+    });
+  }
 } 

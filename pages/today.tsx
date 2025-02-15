@@ -20,7 +20,7 @@ const Today = () => {
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 30); // Fetch last 30 days of activities
   
-  const { activities: recentActivities, isLoading, isError } = useActivities(
+  const { activities: recentActivities, isLoading, isError, mutate } = useActivities(
     startDate.toISOString().split('T')[0],
     todayDate
   );
@@ -74,8 +74,16 @@ const Today = () => {
 
   function formatDate(dateString: string): string {
     const date = new Date(dateString);
-    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    const options: Intl.DateTimeFormatOptions = { 
+      weekday: 'short',  // This will show abbreviated day (e.g., 'Sat')
+      month: 'short', 
+      day: 'numeric' 
+    };
     return date.toLocaleDateString('en-US', options);
+  }
+
+  function formatTime(timestamp: string): string {
+    return timestamp.substring(0, 5); // This will get HH:mm from the timestamp
   }
 
   const handleLogActivity = () => {
@@ -109,6 +117,50 @@ const Today = () => {
     }
   };
 
+  const [editingActivity, setEditingActivity] = useState<string | null>(null); // Store the activity key being edited
+  const [editForm, setEditForm] = useState<{
+    exercise_type: string;
+    notes: string;
+  }>();
+
+  const handleEditClick = (activity: ActivityLogEntry) => {
+    setEditingActivity(`${activity.date}-${activity.timestamp}`);
+    setEditForm({
+      exercise_type: activity.exercise_type,
+      notes: activity.notes || ''
+    });
+  };
+
+  const handleSaveEdit = async (activity: ActivityLogEntry) => {
+    try {
+      const response = await fetch('/api/activityLog', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          date: activity.date,
+          timestamp: activity.timestamp,
+          updates: {
+            exercise_type: editForm?.exercise_type,
+            notes: editForm?.notes
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update activity');
+      }
+
+      setEditingActivity(null);
+      setEditForm(undefined);
+      
+      mutate();
+    } catch (error) {
+      console.error('Error updating activity:', error);
+    }
+  };
+
   if (isLoading) return <LoadingSpinner />;
   if (isError) return <div>Error loading activities</div>;
   if (error) return <div>Error: {error}</div>;
@@ -120,7 +172,7 @@ const Today = () => {
           <CardHeader>
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-800 mb-1">
-                Today's Training - {format(new Date(), 'EEEE, MMM d')}
+                Today's Training - {format(new Date(), 'EEE, MMM d')}
               </h3>
               <button
                 onClick={handleLogActivity}
@@ -200,22 +252,73 @@ const Today = () => {
                     key={`${activity.date}-${activity.timestamp}`} 
                     className="p-4 rounded-lg border bg-gray-50"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-top gap-2">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-start gap-2 flex-grow">
                         {getActivityIcon(activity.exercise_type)}
-                        <div>
-                          <span className="font-medium">{activity.exercise_type}</span>
-                          {activity.duration && (
-                            <div className="text-sm text-gray-500">
-                              Duration: {activity.duration}
+                        <div className="flex-grow">
+                          {editingActivity === `${activity.date}-${activity.timestamp}` ? (
+                            <div className="space-y-2">
+                              <input
+                                type="text"
+                                value={editForm?.exercise_type}
+                                onChange={(e) => setEditForm(prev => ({ ...prev!, exercise_type: e.target.value }))}
+                                className="w-full px-2 py-1 rounded border border-gray-300 text-sm font-medium"
+                              />
+                              <textarea
+                                value={editForm?.notes}
+                                onChange={(e) => setEditForm(prev => ({ ...prev!, notes: e.target.value }))}
+                                className="w-full px-2 py-1 rounded border border-gray-300 text-sm"
+                                rows={2}
+                                placeholder="Add notes..."
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleSaveEdit(activity)}
+                                  className="px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setEditingActivity(null);
+                                    setEditForm(undefined);
+                                  }}
+                                  className="px-2 py-1 text-sm bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
                             </div>
-                          )}
-                          {activity.notes && (
-                            <div className="text-sm text-gray-500"> Note: {activity.notes}</div>
+                          ) : (
+                            <>
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{activity.exercise_type}</span>
+                                  <button
+                                    onClick={() => handleEditClick(activity)}
+                                    className="p-1 text-gray-500 hover:text-blue-600 rounded"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                  </button>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-sm text-gray-500">
+                                    {formatDate(activity.date)} · {formatTime(activity.timestamp)}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-sm text-gray-500 mt-1">
+                                Duration: {activity.duration}
+                              </div>
+                              {activity.notes && (
+                                <div className="text-sm text-gray-500">Note: {activity.notes}</div>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
-                      <span className="text-sm text-gray-500">{formatDate(activity.date)}</span>
                     </div>
                     {shouldShowDistance && (
                       <div className="grid grid-cols-3 gap-2 mt-2">

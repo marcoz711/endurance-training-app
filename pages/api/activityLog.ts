@@ -5,6 +5,24 @@ import { handleApiError } from '../../utils/errors';
 import { withRateLimit } from '../../middleware/rateLimit';
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === 'PUT') {
+    try {
+      const { date, timestamp, updates } = req.body;
+
+      if (!date || !timestamp || !updates) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const service = new GoogleSheetsService();
+      await service.updateActivityLogEntry(date, timestamp, updates);
+
+      return res.status(200).json({ message: 'Activity updated successfully' });
+    } catch (error) {
+      const { statusCode, body } = handleApiError(error);
+      return res.status(statusCode).json(body);
+    }
+  }
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
