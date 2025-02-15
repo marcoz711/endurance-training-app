@@ -85,4 +85,11 @@ export class GoogleSheetsService {
     const activities = await this.getActivityLog();
     return activities.length > 0 ? activities[activities.length - 1] : null;
   }
+
+  async getSheetValues({ spreadsheetId, range }: { spreadsheetId: string, range: string }) {
+    return await this.sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range,
+    });
+  }
 } 

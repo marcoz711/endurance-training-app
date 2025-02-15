@@ -130,7 +130,7 @@ async function getSourceId(service: GoogleSheetsService): Promise<string> {
   try {
     console.log('Attempting to read from Google Sheets...');
     const response = await service.getSheetValues({
-      spreadsheetId: process.env.GOOGLE_SHEETS_ID,
+      spreadsheetId: process.env.GOOGLE_SHEETS_ID!,
       range: 'FitnessSyncerDataSources!A2:B2',
     });
 
@@ -197,17 +197,41 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   try {
+    console.log("Initializing GoogleSheetsService...");
     const service = new GoogleSheetsService();
+    
+    // Make a test call using the getSheetValues method instead
+    try {
+      const testResponse = await service.getSheetValues({
+        spreadsheetId: process.env.GOOGLE_SHEETS_ID!,
+        range: 'A1:A1'
+      });
+      console.log('Test call successful');
+    } catch (error) {
+      console.error('Test call failed:', error);
+      throw error;
+    }
+    
+    console.log("Getting access token...");
     const accessToken = await getValidAccessToken();
+    if (!accessToken) {
+      throw new Error("Failed to get valid access token");
+    }
     
     console.log("Getting source ID from Google Sheets...");
     const sourceId = await getSourceId(service);
+    if (!sourceId) {
+      throw new Error("Failed to get source ID");
+    }
     
     console.log("Fetching activities from FitnessSyncer...");
     const response = await fetchActivities(accessToken, sourceId);
+    if (!response || !response.items) {
+      throw new Error("Invalid response from FitnessSyncer");
+    }
 
-    const activitiesResponse = response;
-    const activities = activitiesResponse.items || [];
+    const activities = response.items || [];
+    console.log(`Fetched ${activities.length} activities`);
 
     const mostRecentActivity = await service.getMostRecentActivity();
     console.log('Most recent activity in sheet:', mostRecentActivity);
@@ -302,10 +326,31 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       newActivities: validatedActivities.length 
     });
   } catch (error) {
-    console.error("API Error:", error);
+    console.error("Detailed API Error:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+
+    // Check for specific error types
+    if (error.message.includes('credentials')) {
+      return res.status(500).json({ 
+        error: "Google Sheets authentication failed", 
+        details: error.message 
+      });
+    }
+
+    if (error.message.includes('FitnessSyncer')) {
+      return res.status(500).json({ 
+        error: "FitnessSyncer API error", 
+        details: error.message 
+      });
+    }
+
     return res.status(500).json({ 
       error: "Internal server error", 
-      details: error.message 
+      details: error.message,
+      type: error.name
     });
   }
 }
