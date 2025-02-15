@@ -88,6 +88,12 @@ export async function getValidAccessToken(): Promise<string> {
 
     } catch (error) {
       console.error(`Attempt ${retryCount + 1} failed:`, error);
+      console.error('Refresh token error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        headers: error.response?.headers,
+        config: error.config
+      });
       if (retryCount < maxRetries - 1) {
         retryCount++;
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retrying
