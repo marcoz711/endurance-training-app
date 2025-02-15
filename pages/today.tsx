@@ -172,7 +172,7 @@ const Today = () => {
           <CardHeader>
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-800 mb-1">
-                Today's Training - {format(new Date(), 'EEE, MMM d')}
+                Today's Plan - {format(new Date(), 'EEE, MMM d')}
               </h3>
               <button
                 onClick={handleLogActivity}

@@ -101,7 +101,7 @@ const calculateWeeklyAverages = (
 };
 
 const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
-  const [range, setRange] = useState<'all' | '12weeks' | '6weeks'>('6weeks'); // Default to 6 weeks
+  const [range, setRange] = useState<'all' | '12weeks' | '6weeks'>('12weeks'); // Default to 12 weeks
 
   const filterByRange = (data: ProgressMetric[], range: 'all' | '12weeks' | '6weeks') => {
     const weeksToInclude = {
