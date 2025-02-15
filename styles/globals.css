@@ -69,20 +69,33 @@ a {
   background-color: var(--card-background);
 }
 
-/* For the activity stats boxes */
+/* For the activity stats boxes - new dark mode color scheme */
 .bg-blue-100 {
-  background-color: rgba(96, 165, 250, 0.15);
-  border: 1px solid rgba(96, 165, 250, 0.3);
+  background-color: rgba(29, 41, 57, 0.8);
+  border: 1px solid rgb(45, 85, 155);
 }
 
 .bg-green-100 {
-  background-color: rgba(34, 197, 94, 0.15);
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  background-color: rgba(20, 46, 40, 0.8);
+  border: 1px solid rgb(45, 155, 101);
 }
 
 .bg-purple-100 {
-  background-color: rgba(168, 85, 247, 0.15);
-  border: 1px solid rgba(168, 85, 247, 0.3);
+  background-color: rgba(44, 31, 57, 0.8);
+  border: 1px solid rgb(121, 67, 146);
+}
+
+/* Text colors for the stats */
+.text-blue-600 {
+  color: rgb(99, 179, 237);  /* bright sky blue */
+}
+
+.text-green-600 {
+  color: rgb(72, 187, 120);  /* emerald green */
+}
+
+.text-purple-600 {
+  color: rgb(183, 148, 244);  /* lavender */
 }
 
 /* Navigation links */
