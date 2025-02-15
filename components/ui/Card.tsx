@@ -1,5 +1,6 @@
 // components/ui/Card.tsx
 import React from 'react';
+import { cn } from "@/lib/utils";
 
 export function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
@@ -9,11 +10,17 @@ export function Card({ children, className = '' }: { children: React.ReactNode; 
   );
 }
 
-export function CardHeader({ children }: { children: React.ReactNode }) {
+interface CardHeaderProps {
+  className?: string;
+  children: React.ReactNode;
+}
+
+export function CardHeader({ className, ...props }: CardHeaderProps) {
   return (
-    <div className="mb-2">
-      {children}
-    </div>
+    <div
+      className={cn("mb2", className)}
+      {...props}
+    />
   );
 }
 

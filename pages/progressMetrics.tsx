@@ -230,7 +230,7 @@ const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-2">
             <CardTitle>Pace Progress</CardTitle>
           </CardHeader>
           <CardContent>

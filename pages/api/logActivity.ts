@@ -64,28 +64,56 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     validateRequestBody(req.body);
 
-    // Set up Google Sheets API client
     const auth = new google.auth.JWT(
       process.env.GOOGLE_CLIENT_EMAIL,
       undefined,
-      process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
       ['https://www.googleapis.com/auth/spreadsheets']
     );
-    const sheets = google.sheets({ version: 'v4', auth });
 
-    // Append new row to ActivityLog sheet
+    const sheets = google.sheets({ version: 'v4', auth });
+    const activity = req.body;
+
+    // Transform the activity data
+    const transformedActivity = {
+      date: activity.date,
+      max_hr: activity.max_hr,
+      z2_percent: activity.z2_percent,
+      above_z2_percent: activity.above_z2_percent,
+      below_z2_percent: activity.below_z2_percent,
+      pace: activity.pace,
+      notes: activity.gps ? '' : 'Incomplete GPS data',
+      // Use the provider type directly from the activity data
+      source: activity.provider || activity.providerType, // Try both possible field names
+      itemId: activity.itemId,
+      // Set isIncomplete based on GPS data existence
+      isIncomplete: !activity.gps || activity.gps.points?.length === 0
+    };
+
+    // Write to spreadsheet
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.GOOGLE_SHEETS_ID,
-      range: 'ActivityLog',
+      range: 'ActivityLog!A:O', // Updated range to match actual columns
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [[
-          req.body.date, req.body.timestamp, req.body.exercise_type, req.body.duration,
-          req.body.distance || '', req.body.avg_hr || '', req.body.max_hr || '',
-          req.body.z2_percent || '', req.body.above_z2_percent || '', req.body.below_z2_percent || '',
-          req.body.pace || '', '', req.body.notes || ''
-        ]],
-      },
+          transformedActivity.date,                // A: date
+          activity.timestamp,                      // B: timestamp
+          activity.exercise_type,                  // C: exercise_type
+          activity.duration,                       // D: duration
+          activity.distance || '',                 // E: distance
+          activity.avg_hr || '',                  // F: avg_hr
+          transformedActivity.max_hr,             // G: max_hr
+          transformedActivity.z2_percent,         // H: z2_percent
+          transformedActivity.above_z2_percent,   // I: above_z2_percent
+          transformedActivity.below_z2_percent,   // J: below_z2_percent
+          transformedActivity.pace,               // K: pace
+          transformedActivity.notes,              // L: notes
+          transformedActivity.isIncomplete,       // M: isIncomplete
+          transformedActivity.itemId,             // N: itemId
+          transformedActivity.source              // O: source
+        ]]
+      }
     });
 
     console.log('Activity logged successfully in Google Sheets.'); // Log success for activity logging

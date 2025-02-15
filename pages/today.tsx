@@ -2,53 +2,61 @@
 
 import Layout from '../components/Layout';
 import { Card, CardHeader, CardContent, CardTitle } from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import { ScrollArea } from '../components/ui/ScrollArea';
+import Button from "@/components/ui/Button";
 import { Footprints, Dumbbell, Activity, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { useActivities } from '../hooks/useActivities';
+import { ActivityLogEntry, TrainingPlanEntry } from '../types/activity';
+import { format } from 'date-fns';
 
 const Today = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [plannedActivities, setPlannedActivities] = useState<any[]>([]);
-  const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const router = useRouter();
+  const [plannedActivities, setPlannedActivities] = useState<TrainingPlanEntry[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [displayCount, setDisplayCount] = useState(5); // Initial number of activities to show
+  const todayDate = new Date().toISOString().split('T')[0];
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 30); // Fetch last 30 days of activities
+  
+  const { activities: recentActivities, isLoading, isError } = useActivities(
+    startDate.toISOString().split('T')[0],
+    todayDate
+  );
+
+  // Sort activities by date and time, most recent first
+  const sortedActivities = recentActivities?.sort((a, b) => {
+    const dateA = new Date(`${a.date}T${a.timestamp}`);
+    const dateB = new Date(`${b.date}T${b.timestamp}`);
+    return dateB.getTime() - dateA.getTime();
+  });
+
+  // Get only the activities to display based on displayCount
+  const displayedActivities = sortedActivities?.slice(0, displayCount);
+
+  const handleLoadMore = () => {
+    setDisplayCount(prev => prev + 3);
+  };
 
   useEffect(() => {
     const fetchTodayData = async () => {
       try {
-        const todayDate = new Date().toISOString().split('T')[0];
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - 7); // Fetch activities from the last 7 days
-
-        const [trainingPlanRes, activityLogRes] = await Promise.all([
-          fetch('/api/trainingPlan'),
-          fetch(`/api/activityLog?startDate=${startDate.toISOString().split('T')[0]}&endDate=${todayDate}`),
-        ]);
-
-        if (!trainingPlanRes.ok || !activityLogRes.ok) {
-          throw new Error('Failed to fetch data from one or more endpoints');
+        const trainingPlanRes = await fetch(`/api/trainingPlan?start=${todayDate}&end=${todayDate}`);
+        if (!trainingPlanRes.ok) {
+          throw new Error('Failed to fetch training plan');
         }
 
         const trainingPlanData = await trainingPlanRes.json();
-        const activityLogData = await activityLogRes.json();
-
-        const todayPlannedActivities = trainingPlanData.filter(
-          (activity: any) => activity.date === todayDate
-        );
-
-        setPlannedActivities(todayPlannedActivities);
-        setRecentActivities(activityLogData.slice(0, 5)); // Keep the last 5 activities
+        setPlannedActivities(trainingPlanData);
       } catch (error) {
+        setError(error instanceof Error ? error.message : 'Failed to fetch training plan');
         console.error('Error fetching data:', error);
-      } finally {
-        setIsLoading(false);
       }
     };
 
     fetchTodayData();
-  }, []);
+  }, [todayDate]);
 
   const getActivityIcon = (type: string) => {
     switch (type.toLowerCase()) {
@@ -72,89 +80,85 @@ const Today = () => {
     router.push('/logActivity');
   };
 
-  if (isLoading) {
-    return (
-      <Layout>
-        <LoadingSpinner />
-      </Layout>
-    );
-  }
+  if (isLoading) return <LoadingSpinner />;
+  if (isError) return <div>Error loading activities</div>;
+  if (error) return <div>Error: {error}</div>;
 
   const syncActivities = async () => {
     try {
-      const response = await fetch('/api/fitnessSyncer/syncActivities', { method: 'POST' });
-      const result = await response.json();
+      const response = await fetch('/api/fitnessSyncer/syncActivities', {
+        method: 'POST',
+      });
 
+      const data = await response.json();
+      
       if (!response.ok) {
-        throw new Error(result.error || 'Sync failed');
+        console.error('Sync error:', data);
+        throw new Error(data.error || 'Sync failed');
       }
 
-      alert(`Successfully synced ${result.newActivities} new activities!`);
+      alert(`Successfully synced ${data.newActivities} new activities!`);
     } catch (error) {
       console.error('Sync error:', error);
       alert('Sync failed. Please try again.');
     }
   };
 
-
   return (
     <Layout>
-      <ScrollArea>
-        <div className="space-y-6">
-          <Card className="p-4 shadow-md rounded-lg">
-            <CardHeader>
-              <CardTitle>Today's Training - {new Date().toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'short',
-                day: 'numeric',
-              })}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {plannedActivities.map((activity, idx) => (
-                <div key={idx} className="flex items-top justify-between border rounded-lg p-3 shadow-sm bg-gray-50">
-                  <div className="flex items-top gap-2">
-                    {getActivityIcon(activity.exercise_type)}
-                    <div>
-                      <div className="font-medium">{activity.exercise_type}</div>
-                      <div className="text-sm text-gray-500">
-                        Duration: {activity.duration_planned_min}
-                        {activity.duration_planned_max && (
-                          <span> - {activity.duration_planned_max}</span>
-                        )}
-                        &nbsp;min
-                      </div>
-                      {activity.notes && (
-                        <div className="text-sm text-gray-400">Note: {activity.notes}</div>
+      <div>
+        <Card className="mb-4">
+          <CardHeader>
+          <h3 className="text-lg font-semibold text-gray-800 mb-1">Today's Training - {format(new Date(), 'EEEE, MMM d')}</h3>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {plannedActivities.map((activity, idx) => (
+              <div key={idx} className="flex items-top justify-between border rounded-lg p-3 shadow-sm bg-gray-50">
+                <div className="flex items-top gap-2">
+                  {getActivityIcon(activity.exercise_type)}
+                  <div>
+                    <div className="font-medium">{activity.exercise_type}</div>
+                    <div className="text-sm text-gray-500">
+                      Duration: {activity.duration_planned_min}
+                      {activity.duration_planned_max && (
+                        <span> - {activity.duration_planned_max}</span>
                       )}
+                      &nbsp;min
                     </div>
+                    {activity.notes && (
+                      <div className="text-sm text-gray-400">Note: {activity.notes}</div>
+                    )}
                   </div>
                 </div>
-              ))}
-              <Button variant="ghost" className="mt-2 text-blue-600 hover:text-blue-700 w-full flex items-center justify-center" onClick={handleLogActivity}>
-                <Plus className="h-4 w-4 mr-2" />
-                Log Activity Now
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="p-4 shadow-md rounded-lg">
-            <CardHeader>
-              <div className="flex justify-between items-center w-full">
-                <CardTitle>Recent Activities</CardTitle>
-                <span
-                  onClick={async () => {
-                    await syncActivities();
-                    location.reload(); // Reload the page to show updated activities
-                  }}
-                  className="text-blue-600 hover:underline cursor-pointer text-sm"
-                >
-                  Sync Activities
-                </span>
               </div>
-            </CardHeader>
-            <CardContent>
-              {recentActivities.map((activity, idx) => (
-                <div key={idx} className="p-3 border rounded-lg shadow-sm bg-gray-50">
+            ))}
+            <Button variant="ghost" className="mt-2 text-blue-600 hover:text-blue-700 w-full flex items-center justify-center" onClick={handleLogActivity}>
+              <Plus className="h-4 w-4 mr-2" />
+              Log Activity Now
+            </Button>
+          </CardContent>
+        </Card>
+        <Card className="mb-4">
+          <div className="relative">
+            <div className="flex justify-between items-center mb-4">
+            <CardHeader>
+              <h3 className="text-lg font-semibold text-gray-800 mb-1">Recent Activities</h3>
+              </CardHeader>
+              <Button
+                variant="ghost"
+                onClick={syncActivities}
+                className="absolute top-0 right-0"
+              >
+                Sync Activities
+              </Button>
+            </div>
+            
+            <CardContent className="space-y-4">
+              {displayedActivities?.map((activity: ActivityLogEntry) => (
+                <div 
+                  key={`${activity.date}-${activity.timestamp}`} 
+                  className="p-4 rounded-lg border bg-gray-50"
+                >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-top gap-2">
                       {getActivityIcon(activity.exercise_type)}
@@ -196,10 +200,22 @@ const Today = () => {
                   )}
                 </div>
               ))}
+              
+              {/* Load More Button */}
+              {sortedActivities && displayCount < sortedActivities.length && (
+                <div className="flex justify-center pt-2">
+                  <Button 
+                    onClick={handleLoadMore}
+                    variant="outline"
+                  >
+                    Load More
+                  </Button>
+                </div>
+              )}
             </CardContent>
-          </Card>
-        </div>
-      </ScrollArea>
+          </div>
+        </Card>
+      </div>
     </Layout>
   );
 };

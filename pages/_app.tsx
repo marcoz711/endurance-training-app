@@ -1,7 +1,13 @@
 import '../styles/global.css';
 import type { AppProps } from 'next/app';
 import { useRouter } from 'next/router';
-import { useEffect } from 'react';
+import { validateEnv } from '../utils/env';
+
+// Validate environment variables at startup
+const isEnvValid = validateEnv();
+if (!isEnvValid && process.env.NODE_ENV === 'production') {
+  console.error('Application startup failed: Invalid environment variables');
+}
 
 function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
