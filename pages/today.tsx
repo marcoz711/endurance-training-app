@@ -80,11 +80,13 @@ const Today = () => {
     router.push('/logActivity');
   };
 
-  if (isLoading) return <LoadingSpinner />;
-  if (isError) return <div>Error loading activities</div>;
-  if (error) return <div>Error: {error}</div>;
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
 
   const syncActivities = async () => {
+    setIsSyncing(true);
+    setSyncResult(null);
+    
     try {
       const response = await fetch('/api/fitnessSyncer/syncActivities', {
         method: 'POST',
@@ -93,23 +95,32 @@ const Today = () => {
       const data = await response.json();
       
       if (!response.ok) {
-        console.error('Sync error:', data);
         throw new Error(data.error || 'Sync failed');
       }
 
-      alert(`Successfully synced ${data.newActivities} new activities!`);
+      setSyncResult(`Successfully synced ${data.newActivities} new activities`);
     } catch (error) {
       console.error('Sync error:', error);
-      alert('Sync failed. Please try again.');
+      setSyncResult('Sync failed. Please try again.');
+    } finally {
+      setIsSyncing(false);
     }
   };
+
+  if (isLoading) return <LoadingSpinner />;
+  if (isError) return <div>Error loading activities</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <Layout>
       <div>
         <Card className="mb-4">
           <CardHeader>
-          <h3 className="text-lg font-semibold text-gray-800 mb-1">Today's Training - {format(new Date(), 'EEEE, MMM d')}</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-800 mb-1">
+                Today's Training - {format(new Date(), 'EEEE, MMM d')}
+              </h3>
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
             {plannedActivities.map((activity, idx) => (
@@ -140,18 +151,34 @@ const Today = () => {
         </Card>
         <Card className="mb-4">
           <div className="relative">
-            <div className="flex justify-between items-center mb-4">
             <CardHeader>
-              <h3 className="text-lg font-semibold text-gray-800 mb-1">Recent Activities</h3>
-              </CardHeader>
-              <Button
-                variant="ghost"
-                onClick={syncActivities}
-                className="absolute top-0 right-0"
-              >
-                Sync Activities
-              </Button>
-            </div>
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-800">Recent Activities</h3>
+                <button
+                  onClick={syncActivities}
+                  disabled={isSyncing}
+                  className="px-4 py-2 bg-white text-blue-600 rounded-md 
+                    disabled:bg-gray-100 disabled:text-blue-400
+                    hover:bg-blue-50 flex items-center gap-2"
+                >
+                  {isSyncing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    'Sync Activities'
+                  )}
+                </button>
+              </div>
+              {syncResult && (
+                <div className="flex justify-center mt-4 mb-2">
+                  <p className={`text-sm ${syncResult.includes('failed') ? 'text-red-600' : 'text-green-600'}`}>
+                    {syncResult}
+                  </p>
+                </div>
+              )}
+            </CardHeader>
             
             <CardContent className="space-y-4">
               {displayedActivities?.map((activity: ActivityLogEntry) => (
