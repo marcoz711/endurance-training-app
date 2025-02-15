@@ -20,18 +20,37 @@ export async function getValidAccessToken(retryCount = 0): Promise<string> {
     const sheets = google.sheets({ version: "v4", auth });
 
     // Get tokens from Config sheet
+    console.log('Fetching tokens from Config sheet...');
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.GOOGLE_SHEETS_ID,
       range: CONFIG_SHEET_NAME,
     });
 
-    const tokens = response.data.values?.find(row => row[0] === "fitnesssyncer_tokens");
-    if (!tokens) throw new Error("No tokens found in Config sheet");
+    console.log('Config sheet response:', {
+      hasValues: !!response.data.values,
+      rowCount: response.data.values?.length,
+      firstRow: response.data.values?.[0]
+    });
+
+    const tokens = response.data.values?.find(row => {
+      console.log('Checking row:', row);
+      return row[0] === "fitnesssyncer_tokens";
+    });
+    if (!tokens) {
+      console.error('No tokens found. Available rows:', response.data.values);
+      throw new Error("No tokens found in Config sheet");
+    }
 
     let accessToken = tokens[1];
     const refreshToken = tokens[2];
     const tokenExpiry = new Date(tokens[3]);
     
+    console.log('Found tokens:', {
+      hasAccessToken: !!accessToken,
+      hasRefreshToken: !!refreshToken,
+      tokenExpiry: tokenExpiry.toISOString()
+    });
+
     // Convert current time to UTC for consistent comparison
     const now = new Date();
     const utcNow = new Date(Date.UTC(
