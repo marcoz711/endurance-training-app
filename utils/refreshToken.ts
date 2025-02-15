@@ -1,6 +1,5 @@
 import axios from "axios";
 import { google } from "googleapis";
-import qs from "querystring";
 
 const CONFIG_SHEET_NAME = "Config";
 const LOG_SHEET_NAME = "TokenRefreshLog";
@@ -29,21 +28,27 @@ export async function getValidAccessToken(retryCount = 0): Promise<string> {
     console.log('Config sheet response:', {
       hasValues: !!response.data.values,
       rowCount: response.data.values?.length,
-      firstRow: response.data.values?.[0]
     });
 
-    const tokens = response.data.values?.find(row => {
-      console.log('Checking row:', row);
-      return row[0] === "fitnesssyncer_tokens";
-    });
-    if (!tokens) {
-      console.error('No tokens found. Available rows:', response.data.values);
-      throw new Error("No tokens found in Config sheet");
+    if (!response.data.values) {
+      throw new Error('No data found in Config sheet');
     }
 
-    let accessToken = tokens[1];
-    const refreshToken = tokens[2];
-    const tokenExpiry = new Date(tokens[3]);
+    // Create a map of the config values
+    const configMap = new Map(
+      response.data.values.map(row => [row[0], row[1]])
+    );
+
+    const accessToken = configMap.get('Access Token');
+    const refreshToken = configMap.get('Refresh Token');
+    const expiryTime = configMap.get('Expiry Time');
+
+    if (!accessToken || !refreshToken || !expiryTime) {
+      console.error('Missing required tokens. Available config:', Object.fromEntries(configMap));
+      throw new Error('Missing required tokens in Config sheet');
+    }
+
+    const tokenExpiry = new Date(parseInt(expiryTime) * 1000); // Convert UNIX timestamp to Date
     
     console.log('Found tokens:', {
       hasAccessToken: !!accessToken,
@@ -82,18 +87,18 @@ export async function getValidAccessToken(retryCount = 0): Promise<string> {
         // Update tokens in Config sheet
         await sheets.spreadsheets.values.update({
           spreadsheetId: process.env.GOOGLE_SHEETS_ID,
-          range: `${CONFIG_SHEET_NAME}!A2:B4`,
+          range: 'Config!B2:B4', // Update Access Token and Expiry Time
           valueInputOption: "RAW",
           requestBody: {
             values: [
-              ["Access Token", refreshResponse.data.access_token],
-              ["Refresh Token", refreshToken],
-              ["Expiry Time", newExpiry.toISOString()],
-            ],
-          },
+              [refreshResponse.data.access_token],
+              [refreshToken],
+              [Math.floor(newExpiry.getTime() / 1000).toString()]
+            ]
+          }
         });
 
-        accessToken = refreshResponse.data.access_token;
+        return refreshResponse.data.access_token;
       } catch (error) {
         console.error("Refresh token error details:", {
           status: error.response?.status,
