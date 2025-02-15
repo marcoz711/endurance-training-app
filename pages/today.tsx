@@ -109,6 +109,7 @@ const Today = () => {
       }
 
       setSyncResult(`Successfully synced ${data.newActivities} new activities`);
+      mutate();
     } catch (error) {
       console.error('Sync error:', error);
       setSyncResult('Sync failed. Please try again.');
