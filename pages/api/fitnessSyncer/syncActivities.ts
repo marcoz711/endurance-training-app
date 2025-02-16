@@ -213,10 +213,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       ? new Date(`${mostRecentActivity.date}T${mostRecentActivity.timestamp}`).getTime()
       : null;
 
+    // Adding minimum date threshold
+    const minDateThreshold = new Date('2024-12-03').getTime();
+
     const filteredActivities = activities.filter(activity => {
       const activityTimestamp = new Date(Number(activity.date)).getTime();
-      return !mostRecentTimestamp || activityTimestamp > mostRecentTimestamp;
-    }).filter(activity => activity.activity !== 'Generic');
+      return (
+        (!mostRecentTimestamp || activityTimestamp > mostRecentTimestamp) && 
+        activityTimestamp >= minDateThreshold &&
+        activity.activity !== 'Generic'
+      );
+    });
 
     // Sort activities by date and time, oldest first
     const sortedActivities = filteredActivities.sort((a, b) => {
