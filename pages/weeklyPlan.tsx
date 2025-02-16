@@ -4,15 +4,8 @@ import Layout from '../components/Layout';
 import { ScrollArea } from '../components/ui/ScrollArea';
 import { Card, CardHeader, CardContent, CardTitle } from '../components/ui/Card';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { Footprints, Dumbbell, Activity } from 'lucide-react';
-
-interface TrainingPlanEntry {
-  date: string;
-  exercise_type: string;
-  duration_planned_min: number;
-  duration_planned_max?: number;
-  notes?: string;
-}
+import { Activity } from 'lucide-react';
+import { ActivityLogEntry, TrainingPlanEntry, getIconForActivity } from '../types/activity';
 
 const WeeklyPlan = () => {
   const [loading, setLoading] = useState(false);
@@ -70,18 +63,6 @@ const WeeklyPlan = () => {
     end.setDate(date.getDate() + (day === 0 ? 0 : 7 - day));
     return end.toISOString().split('T')[0];
   };
-  
-  const getActivityIcon = (type: string) => {
-    switch (type.toLowerCase()) {
-      case 'run':
-      case 'zone 2 run':
-        return <Footprints className="mt-1 h-5 w-5 text-blue-600" />;
-      case 'strength':
-        return <Dumbbell className="mt-1 h-5 w-5 text-purple-600" />;
-      default:
-        return <Activity className="mt-1 h-5 w-5 text-teal-600" />;
-    }
-  };
 
   // Group entries by date for display purposes
   const groupedEntries = weeklyPlan.reduce((acc: { [date: string]: TrainingPlanEntry[] }, entry) => {
@@ -94,14 +75,24 @@ const WeeklyPlan = () => {
       <ScrollArea>
         <div className="space-y-6">
           <div className="flex justify-between items-center mb-4">
-            <button onClick={handlePreviousWeek} className="text-blue-500">
+            <button 
+              onClick={handlePreviousWeek} 
+              className="px-4 py-2 bg-white text-blue-600 rounded-md 
+                disabled:bg-gray-100 disabled:text-blue-400
+                hover:bg-blue-50 flex items-center gap-2"
+            >
               &lt; Previous
             </button>
             <span className="font-medium">
-            {new Date(getStartOfWeek(currentWeek)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} -{' '}
-            {new Date(getEndOfWeek(currentWeek)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              {new Date(getStartOfWeek(currentWeek)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} -{' '}
+              {new Date(getEndOfWeek(currentWeek)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </span>
-            <button onClick={handleNextWeek} className="text-blue-500">
+            <button 
+              onClick={handleNextWeek}
+              className="px-4 py-2 bg-white text-blue-600 rounded-md 
+                disabled:bg-gray-100 disabled:text-blue-400
+                hover:bg-blue-50 flex items-center gap-2"
+            >
               Next &gt;
             </button>
           </div>
@@ -130,7 +121,10 @@ const WeeklyPlan = () => {
                         className="flex items-top justify-between border rounded-lg p-3 shadow-sm bg-gray-50"
                       >
                         <div className="flex items-top gap-2">
-                          {getActivityIcon(activity.exercise_type)}
+                          {(() => {
+                            const IconComponent = getIconForActivity(activity.exercise_type);
+                            return <IconComponent className="mt-1 h-5 w-5 text-teal-600" />;
+                          })()}
                           <div>
                             <div className="font-medium">{activity.exercise_type}</div>
                             <div className="text-sm text-gray-500">
@@ -154,7 +148,12 @@ const WeeklyPlan = () => {
           )}
 
           <div className="mt-6 text-center">
-            <button onClick={resetToCurrentWeek} className="text-blue-500">
+            <button 
+              onClick={resetToCurrentWeek} 
+              className="px-4 py-2 bg-white text-blue-600 rounded-md 
+                disabled:bg-gray-100 disabled:text-blue-400
+                hover:bg-blue-50 flex items-center gap-2 mx-auto"
+            >
               Reset to Current Week
             </button>
           </div>

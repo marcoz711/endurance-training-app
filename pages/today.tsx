@@ -3,12 +3,11 @@
 import Layout from '../components/Layout';
 import { Card, CardHeader, CardContent } from '../components/ui/Card';
 import Button from "@/components/ui/Button";
-import { Footprints, Dumbbell, Activity, Bike } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { useActivities } from '../hooks/useActivities';
-import { ActivityLogEntry, TrainingPlanEntry } from '../types/activity';
+import { ActivityLogEntry, TrainingPlanEntry, getIconForActivity } from '../types/activity';
 import { format } from 'date-fns';
 
 const Today = () => {
@@ -57,20 +56,6 @@ const Today = () => {
 
     fetchTodayData();
   }, [todayDate]);
-
-  const getActivityIcon = (type: string) => {
-    const lowerType = type.toLowerCase();
-    if (lowerType.includes('run')) {
-      return <Footprints className="mt-1 h-5 w-5 text-blue-600" />;
-    }
-    if (lowerType.includes('bike') || lowerType.includes('cycling')) {
-      return <Bike className="mt-1 h-5 w-5 text-green-600" />;
-    }
-    if (lowerType === 'strength') {
-      return <Dumbbell className="mt-1 h-5 w-5 text-purple-600" />;
-    }
-    return <Activity className="mt-1 h-5 w-5 text-teal-600" />;
-  };
 
   function formatDate(dateString: string): string {
     const date = new Date(dateString);
@@ -171,7 +156,7 @@ const Today = () => {
       <div>
         <Card className="mb-4">
           <CardHeader>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-800 mb-1">
                 Today's Plan - {format(new Date(), 'EEE, MMM d')}
               </h3>
@@ -189,7 +174,10 @@ const Today = () => {
             {plannedActivities.map((activity, idx) => (
               <div key={idx} className="flex items-top justify-between border rounded-lg p-3 shadow-sm bg-gray-50">
                 <div className="flex items-top gap-2">
-                  {getActivityIcon(activity.exercise_type)}
+                  {(() => {
+                    const IconComponent = getIconForActivity(activity.exercise_type);
+                    return <IconComponent className="mt-1 h-5 w-5 text-teal-600" />;
+                  })()}
                   <div>
                     <div className="font-medium">{activity.exercise_type}</div>
                     <div className="text-sm text-gray-500">
@@ -211,7 +199,7 @@ const Today = () => {
         <Card className="mb-4">
           <div className="relative">
             <CardHeader>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-gray-800">Recent Activities</h3>
                 <button
                   onClick={syncActivities}
@@ -255,7 +243,10 @@ const Today = () => {
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-start gap-2 flex-grow">
-                        {getActivityIcon(activity.exercise_type)}
+                        {(() => {
+                          const IconComponent = getIconForActivity(activity.exercise_type);
+                          return <IconComponent className="mt-1 h-5 w-5 text-teal-600" />;
+                        })()}
                         <div className="flex-grow">
                           {editingActivity === `${activity.date}-${activity.timestamp}` ? (
                             <div className="space-y-2">
