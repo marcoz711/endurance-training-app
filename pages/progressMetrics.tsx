@@ -164,6 +164,13 @@ const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
       legend: {
         display: false,
       },
+      tooltip: {
+        callbacks: {
+          label: (context: any) => {
+            return ` ${formatHoursToPace(context.raw)}`;
+          }
+        }
+      }
     },
     scales: {
       x: {
