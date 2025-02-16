@@ -216,7 +216,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const filteredActivities = activities.filter(activity => {
       const activityTimestamp = new Date(Number(activity.date)).getTime();
       return !mostRecentTimestamp || activityTimestamp > mostRecentTimestamp;
-    });
+    }).filter(activity => activity.activity !== 'Generic');
 
     // Sort activities by date and time, oldest first
     const sortedActivities = filteredActivities.sort((a, b) => {

@@ -21,4 +21,17 @@ export interface TrainingPlanEntry {
   duration_planned_min: string;
   duration_planned_max?: string;
   notes?: string;
-} 
+}
+
+type ActivityType = 
+  | 'Running' 
+  | 'Cycling' 
+  | 'Swimming'
+  | 'Walking'
+  | 'Other'
+  | 'Dynamix'
+  | 'Strength'
+  | 'Yoga'
+  | 'The Challenge'
+  // ... other valid activity types ...
+  // Note: 'Generic' is intentionally excluded from valid types 
