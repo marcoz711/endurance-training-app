@@ -14,6 +14,7 @@ export const ActivityLogSchema = z.object({
   below_z2_percent: z.number().optional(),
   pace: z.string().optional(),
   notes: z.string().optional(),
+  maf_zone_percent: z.number().optional(),
 });
 
 export function validateActivityLog(activity: Partial<ActivityLogEntry>): ActivityLogEntry {
@@ -33,7 +34,8 @@ export function validateActivityLog(activity: Partial<ActivityLogEntry>): Activi
     isIncomplete: activity.isIncomplete || false,
     itemId: activity.itemId || '',
     source: activity.source || '',
-    mafZonePercent: activity.mafZonePercent || 0
+    mafZonePercent: activity.mafZonePercent || 0,
+    maf_zone_percent: activity.maf_zone_percent || 0
   };
 }
 
@@ -48,6 +50,11 @@ export const ActivityLogRequestSchema = z.object({
   z2_percent: z.number().min(0).max(100).optional(),
   above_z2_percent: z.number().min(0).max(100).optional(),
   below_z2_percent: z.number().min(0).max(100).optional(),
+  maf_zone_percent: z.number().min(0).max(100).optional(),
+  gps: z.any().optional(),
+  provider: z.string().optional(),
+  providerType: z.string().optional(),
+  itemId: z.string().optional(),
   pace: z.string().regex(/^\d{2}:\d{2}:\d{2}$/).optional(),
   notes: z.string().optional()
 });
