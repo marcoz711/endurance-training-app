@@ -1,6 +1,7 @@
 // pages/logActivity.tsx
 import { useState } from 'react';
 import { useRouter } from 'next/router';
+import { Activity } from '../types/activity';  // or wherever your types are defined
 
 const ActivityRow = ({ activity }: { activity: Activity }) => {
   return (
