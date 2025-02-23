@@ -48,24 +48,59 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const headers = activityRows.shift();
         if (!headers) return res.status(400).json({ error: 'No activity logs found in the sheet.' });
 
+        // Log headers to debug column names
+        console.log('Sheet headers:', headers);
+
         const dateIndex = headers.indexOf('date');
         const z2PercentIndex = headers.indexOf('z2_percent');
         const paceIndex = headers.indexOf('pace');
         const exerciseTypeIndex = headers.indexOf('exercise_type');
+        const mafZonePercentIndex = headers.indexOf('maf_zone_percent');
+
+        // Log indices to debug
+        console.log('MAF zone index:', mafZonePercentIndex);
 
         // Filter for running activities and prepare processed data
         const runningActivities = activityRows.filter(row => row[exerciseTypeIndex]?.toLowerCase().includes('run'));
-        const weeklyData = new Map<string, { totalZ2: number; countZ2: number; totalPace: number; countPace: number }>();
+        
+        // Log first few activities to debug
+        console.log('Sample activities:', runningActivities.slice(0, 3));
+
+        const weeklyData = new Map<string, {
+            totalZ2: number;
+            countZ2: number;
+            totalPace: number;
+            countPace: number;
+            totalMaf: number;
+            countMaf: number;
+        }>();
 
         for (const row of runningActivities) {
             const activityDate = parse(row[dateIndex], 'yyyy-MM-dd', new Date());
-            const weekStart = format(getMondayOfWeek(activityDate), 'yyyy-MM-dd'); // Ensures correct Monday date
+            const weekStart = format(getMondayOfWeek(activityDate), 'yyyy-MM-dd');
 
             const paceInSeconds = parsePace(row[paceIndex]);
             const z2Percent = row[z2PercentIndex]?.toUpperCase() === "N/A" ? null : parseFloat(row[z2PercentIndex]);
+            const mafPercent = row[mafZonePercentIndex]?.toUpperCase() === "N/A" ? null : parseFloat(row[mafZonePercentIndex]);
+
+            // Log values to debug
+            if (mafPercent === null) {
+                console.log('Invalid MAF value for activity:', {
+                    date: row[dateIndex],
+                    rawMafValue: row[mafZonePercentIndex],
+                    mafPercent
+                });
+            }
 
             if (!weeklyData.has(weekStart)) {
-                weeklyData.set(weekStart, { totalZ2: 0, countZ2: 0, totalPace: 0, countPace: 0 });
+                weeklyData.set(weekStart, {
+                    totalZ2: 0,
+                    countZ2: 0,
+                    totalPace: 0,
+                    countPace: 0,
+                    totalMaf: 0,
+                    countMaf: 0
+                });
             }
             const weekEntry = weeklyData.get(weekStart)!;
 
@@ -78,16 +113,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 weekEntry.totalPace += paceInSeconds;
                 weekEntry.countPace++;
             }
+
+            if (mafPercent !== null && !isNaN(mafPercent)) {
+                weekEntry.totalMaf += mafPercent;
+                weekEntry.countMaf++;
+            }
         }
+
+        // Log weekly data to debug
+        console.log('Weekly data:', Array.from(weeklyData.entries()));
 
         // Compute final metrics
         const metrics: [string, string, number | string][] = [];
         for (const [weekStart, data] of weeklyData.entries()) {
             const weeklyZ2Average = data.countZ2 > 0 ? (data.totalZ2 / data.countZ2).toFixed(0) : "N/A";
             const weeklyPace = data.countPace > 0 ? secondsToMMSS(data.totalPace / data.countPace) : "N/A";
+            const weeklyMafAverage = data.countMaf > 0 ? (data.totalMaf / data.countMaf).toFixed(0) : "N/A";
+
+            // Log weekly averages to debug
+            console.log('Weekly averages:', {
+                weekStart,
+                maf: {
+                    total: data.totalMaf,
+                    count: data.countMaf,
+                    average: weeklyMafAverage
+                }
+            });
 
             metrics.push([weekStart, 'weekly_z2_average', weeklyZ2Average]);
             metrics.push([weekStart, 'weekly_pace', weeklyPace]);
+            metrics.push([weekStart, 'weekly_maf_average', weeklyMafAverage]);
         }
 
         // Clear the ProgressMetrics tab
