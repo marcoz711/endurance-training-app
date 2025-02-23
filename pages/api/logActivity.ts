@@ -1,6 +1,5 @@
 // pages/api/logActivity.ts
 import { NextApiRequest, NextApiResponse } from 'next';
-import { google } from 'googleapis';
 import { validateActivityLogRequest } from '../../utils/validation';
 import { handleApiError } from '../../utils/errors';
 import { GoogleSheetsService } from '../../services/googleSheets';
