@@ -2,6 +2,15 @@ import { google } from 'googleapis';
 import { ActivityLogEntry, TrainingPlanEntry } from '../types/activity';
 
 export class GoogleSheetsService {
+  private static instance: GoogleSheetsService;
+  
+  public static getInstance(): GoogleSheetsService {
+    if (!GoogleSheetsService.instance) {
+      GoogleSheetsService.instance = new GoogleSheetsService();
+    }
+    return GoogleSheetsService.instance;
+  }
+
   private auth;
   private sheets;
   private spreadsheetId: string;

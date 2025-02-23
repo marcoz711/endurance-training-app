@@ -7,6 +7,7 @@ import { GoogleSheetsService } from "../../../services/googleSheets";
 import { withRateLimit } from "../../../middleware/rateLimit";
 import { ActivityLogEntry } from "../../../types/activity";
 import { validateActivityLog } from "../../../utils/validation";
+import { handleApiError } from '../../../utils/errors';
 
 const SHEET_NAME_ACTIVITY_LOG = "ActivityLog";
 
@@ -140,7 +141,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   try {
-    const service = new GoogleSheetsService();
+    const service = GoogleSheetsService.getInstance();
     
     // Test call using the getSheetValues method
     try {
@@ -291,8 +292,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       newActivities: transformedActivities.length 
     });
   } catch (error) {
-    console.error("Error syncing activities:", error);
-    res.status(500).json({ error: "Failed to sync activities" });
+    const { statusCode, body } = handleApiError(error);
+    res.status(statusCode).json(body);
   }
 }
 

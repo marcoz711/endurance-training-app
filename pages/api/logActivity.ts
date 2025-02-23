@@ -1,6 +1,8 @@
 // pages/api/logActivity.ts
 import { NextApiRequest, NextApiResponse } from 'next';
 import { google } from 'googleapis';
+import { validateActivityLogRequest } from '../../utils/validation';
+import { handleApiError } from '../../utils/errors';
 import { GoogleSheetsService } from '../../services/googleSheets';
 
 const validateRequestBody = (body: any) => {
@@ -61,24 +63,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    validateRequestBody(req.body);
+    const validation = validateActivityLogRequest(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: validation.error.message });
+    }
 
-    const service = new GoogleSheetsService();
-    const activity = req.body;
+    const service = GoogleSheetsService.getInstance();
+    const activity = validation.data;  // Now properly typed
 
     // Transform the activity data
     const transformedActivity = {
       date: activity.date,
+      timestamp: activity.timestamp,
+      exercise_type: activity.exercise_type,
+      duration: activity.duration,
+      distance: activity.distance,
+      avg_hr: activity.avg_hr,
       max_hr: activity.max_hr,
       z2_percent: activity.z2_percent,
       above_z2_percent: activity.above_z2_percent,
       below_z2_percent: activity.below_z2_percent,
+      maf_zone_percent: activity.maf_zone_percent,
       pace: activity.pace,
       notes: activity.gps ? '' : 'Incomplete GPS data',
-      // Use the provider type directly from the activity data
       source: activity.provider || activity.providerType, // Try both possible field names
       itemId: activity.itemId,
-      // Set isIncomplete based on GPS data existence
       isIncomplete: !activity.gps || activity.gps.points?.length === 0
     };
 
@@ -91,7 +100,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     res.status(200).json({ message: 'Activity logged successfully and metrics updated.' });
   } catch (error) {
-    console.error('Error logging activity or calculating metrics:', error.message);
-    res.status(400).json({ error: error.message });
+    const { statusCode, body } = handleApiError(error);
+    res.status(statusCode).json(body);
   }
 }

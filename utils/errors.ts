@@ -10,19 +10,17 @@ export class AppError extends Error {
 }
 
 export function handleApiError(error: unknown) {
-  if (error instanceof AppError) {
+  console.error('API Error:', error);
+  
+  if (error instanceof Error) {
     return {
-      statusCode: error.statusCode,
-      body: { error: error.message, code: error.code }
+      statusCode: 400,
+      body: { error: error.message }
     };
   }
-
-  console.error('Unhandled error:', error);
+  
   return {
     statusCode: 500,
-    body: { 
-      error: 'Internal server error',
-      code: 'INTERNAL_SERVER_ERROR'
-    }
+    body: { error: 'Internal server error' }
   };
 } 

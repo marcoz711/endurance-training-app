@@ -35,4 +35,23 @@ export function validateActivityLog(activity: Partial<ActivityLogEntry>): Activi
     source: activity.source || '',
     mafZonePercent: activity.mafZonePercent || 0
   };
-} 
+}
+
+export const ActivityLogRequestSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  timestamp: z.string().regex(/^\d{2}:\d{2}:\d{2}$/),
+  exercise_type: z.string().min(1),
+  duration: z.string().regex(/^\d{2}:\d{2}:\d{2}$/),
+  distance: z.string().optional(),
+  avg_hr: z.number().optional(),
+  max_hr: z.number().optional(),
+  z2_percent: z.number().min(0).max(100).optional(),
+  above_z2_percent: z.number().min(0).max(100).optional(),
+  below_z2_percent: z.number().min(0).max(100).optional(),
+  pace: z.string().regex(/^\d{2}:\d{2}:\d{2}$/).optional(),
+  notes: z.string().optional()
+});
+
+export const validateActivityLogRequest = (data: unknown) => {
+  return ActivityLogRequestSchema.safeParse(data);
+}; 
