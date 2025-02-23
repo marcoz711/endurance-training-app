@@ -26,23 +26,16 @@ export async function getValidAccessToken(retryCount = 0): Promise<string> {
       response.data.values.map(row => [row[0], row[1]])
     );
 
-    const accessToken = configMap.get('Access Token');
-    const refreshToken = configMap.get('Refresh Token');
-    const expiryTime = configMap.get('Expiry Time');
+    const accessToken = configMap.get('Access Token') as string;
+    const refreshToken = configMap.get('Refresh Token') as string;
+    const expiryTime = configMap.get('Expiry Time') as string;
 
     if (!accessToken || !refreshToken || !expiryTime) {
       console.error('Missing required tokens. Available config:', Object.fromEntries(configMap));
       throw new Error('Missing required tokens in Config sheet');
     }
 
-    // Add validation for refresh token format
-    if (!refreshToken || refreshToken.length < 10) {  // Adjust length check based on expected token length
-      console.error('Invalid refresh token format:', {
-        tokenLength: refreshToken?.length,
-        tokenPreview: refreshToken ? `${refreshToken.substring(0, 5)}...` : 'null'
-      });
-      throw new Error('Invalid refresh token format');
-    }
+
 
     const tokenExpiry = new Date(parseInt(expiryTime) * 1000); // Convert UNIX timestamp to Date
     
@@ -92,14 +85,25 @@ export async function getValidAccessToken(retryCount = 0): Promise<string> {
         const newExpiry = new Date(utcNow.getTime() + expiresIn * 1000);
 
         // Update tokens in Config sheet
-        await service.updateSheetValues({
+        const auth = new google.auth.JWT(
+          process.env.GOOGLE_CLIENT_EMAIL,
+          undefined,
+          process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+          ['https://www.googleapis.com/auth/spreadsheets']
+        );
+        const sheets = google.sheets({ version: 'v4', auth });
+        
+        await sheets.spreadsheets.values.update({
           spreadsheetId: process.env.GOOGLE_SHEETS_ID,
-          range: 'Config!B2:B4', // Update Access Token and Expiry Time
-          values: [
-            [refreshResponse.data.access_token],
-            [refreshToken],
-            [Math.floor(newExpiry.getTime() / 1000).toString()]
-          ]
+          range: 'Config!B2:B4',
+          valueInputOption: 'RAW',
+          requestBody: {
+            values: [
+              [refreshResponse.data.access_token],
+              [refreshToken],
+              [Math.floor(newExpiry.getTime() / 1000).toString()]
+            ]
+          }
         });
 
         return refreshResponse.data.access_token;
