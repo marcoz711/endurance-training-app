@@ -35,7 +35,7 @@ export function validateActivityLog(activity: Partial<ActivityLogEntry>): Activi
     itemId: activity.itemId || '',
     source: activity.source || '',
     mafZonePercent: activity.mafZonePercent || 0,
-    maf_zone_percent: activity.maf_zone_percent || 0
+    maf_zone_percent: (activity.maf_zone_percent || 0).toString()
   };
 }
 
