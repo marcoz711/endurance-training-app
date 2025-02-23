@@ -1,7 +1,7 @@
 // pages/api/progressMetrics.ts
 
 import { NextApiRequest, NextApiResponse } from 'next';
-import { google } from 'googleapis';
+import { GoogleSheetsService } from '../../services/googleSheets';
 
 // Helper function to format total seconds into HH:MM:SS
 function formatPace(value: string): string {
@@ -22,16 +22,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // console.log("Fetching progress metrics...");
   
   try {
-    // Set up Google Sheets API client
-    const auth = new google.auth.JWT(
-      process.env.GOOGLE_CLIENT_EMAIL,
-      undefined,
-      process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-      ['https://www.googleapis.com/auth/spreadsheets.readonly']
-    );
-    const sheets = google.sheets({ version: 'v4', auth });
-
-    const response = await sheets.spreadsheets.values.get({
+    const service = new GoogleSheetsService();
+    const response = await service.getSheetValues({
       spreadsheetId: process.env.GOOGLE_SHEETS_ID,
       range: 'ProgressMetrics',
     });

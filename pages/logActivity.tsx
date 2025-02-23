@@ -2,6 +2,17 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 
+const ActivityRow = ({ activity }: { activity: Activity }) => {
+  return (
+    <tr>
+      {/* ... existing columns ... */}
+      <td className="px-6 py-4 whitespace-nowrap">
+        {activity.mafZonePercent ? `${activity.mafZonePercent}%` : 'N/A'}
+      </td>
+    </tr>
+  );
+};
+
 const LogActivity = () => {
   const router = useRouter();
   const [activityType, setActivityType] = useState('');

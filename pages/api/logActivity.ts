@@ -1,6 +1,7 @@
 // pages/api/logActivity.ts
 import { NextApiRequest, NextApiResponse } from 'next';
 import { google } from 'googleapis';
+import { GoogleSheetsService } from '../../services/googleSheets';
 
 const validateRequestBody = (body: any) => {
   const durationPattern = /^(\d{2}):(\d{2}):(\d{2})$/;
@@ -62,14 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     validateRequestBody(req.body);
 
-    const auth = new google.auth.JWT(
-      process.env.GOOGLE_CLIENT_EMAIL,
-      undefined,
-      process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-      ['https://www.googleapis.com/auth/spreadsheets']
-    );
-
-    const sheets = google.sheets({ version: 'v4', auth });
+    const service = new GoogleSheetsService();
     const activity = req.body;
 
     // Transform the activity data
@@ -89,30 +83,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
 
     // Write to spreadsheet
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: process.env.GOOGLE_SHEETS_ID,
-      range: 'ActivityLog!A:O', // Updated range to match actual columns
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [[
-          transformedActivity.date,                // A: date
-          activity.timestamp,                      // B: timestamp
-          activity.exercise_type,                  // C: exercise_type
-          activity.duration,                       // D: duration
-          activity.distance || '',                 // E: distance
-          activity.avg_hr || '',                  // F: avg_hr
-          transformedActivity.max_hr,             // G: max_hr
-          transformedActivity.z2_percent,         // H: z2_percent
-          transformedActivity.above_z2_percent,   // I: above_z2_percent
-          transformedActivity.below_z2_percent,   // J: below_z2_percent
-          transformedActivity.pace,               // K: pace
-          transformedActivity.notes,              // L: notes
-          transformedActivity.isIncomplete,       // M: isIncomplete
-          transformedActivity.itemId,             // N: itemId
-          transformedActivity.source              // O: source
-        ]]
-      }
-    });
+    await service.updateActivityLog([transformedActivity]);
 
     // Trigger weekly metrics calculation
     console.log('Attempting to trigger weekly metrics calculation...');

@@ -27,6 +27,7 @@ export interface ActivityLogEntry {
   isIncomplete?: boolean;
   itemId?: string;
   source?: string;
+  mafZonePercent?: number;
 }
 
 export interface TrainingPlanEntry {

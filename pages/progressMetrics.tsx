@@ -130,6 +130,12 @@ const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
     calculateWeeklyAverages(filteredProgressData, 'weekly_z2_average', false, allWeeks);
   const { weeklyAverages: paceAverages, currentAverage: currentPace, dates: paceDates, change: paceChange } =
     calculateWeeklyAverages(filteredProgressData, 'weekly_pace', true, allWeeks);
+  const { 
+    weeklyAverages: mafAverages, 
+    currentAverage: currentMaf, 
+    dates: mafDates, 
+    change: mafChange 
+  } = calculateWeeklyAverages(filteredProgressData, 'weekly_maf_average', false, allWeeks);
 
   const zone2ChartData = {
     labels: zone2Dates,
@@ -152,6 +158,20 @@ const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
         data: paceAverages,
         fill: false,
         borderColor: '#ef4444',
+        borderWidth: 2,
+        pointRadius: 3,
+        tension: 0.2,
+      },
+    ],
+  };
+
+  const mafChartData = {
+    labels: mafDates,
+    datasets: [
+      {
+        data: mafAverages,
+        fill: false,
+        borderColor: '#10b981', // Green color
         borderWidth: 2,
         pointRadius: 3,
         tension: 0.2,
@@ -229,28 +249,6 @@ const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Zone 2 Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Line data={zone2ChartData} options={{ plugins: { legend: { display: false } } }} />
-            <div className="flex justify-between items-end mt-4">
-              <div className="text-left">
-                <p className="text-sm text-gray-500">Current</p>
-                <p className="text-l font-semibold">{currentZone2}%</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-500">Change</p>
-                <div className={`flex items-center ${zone2Change.startsWith('-') ? 'text-red-500' : 'text-green-500'} text-l`}>
-                  {zone2Change.startsWith('-') ? <FaArrowDown /> : <FaArrowUp />}
-                  <span className="ml-1">{zone2Change} in {range === 'all' ? 'all time' : range.replace('weeks', ' weeks')}</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
           <CardHeader className="pb-2">
             <CardTitle>Pace Progress</CardTitle>
           </CardHeader>
@@ -266,6 +264,50 @@ const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
                 <div className={`flex items-center ${String(paceChange).startsWith('-') ? 'text-green-500' : 'text-red-500'} text-l`}>
                   {String(paceChange).startsWith('-') ? <FaArrowDown /> : <FaArrowUp />}
                   <span className="ml-1">{paceChange} in {range === 'all' ? 'all time' : range.replace('weeks', ' weeks')}</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>MAF Zone Progress</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Line data={mafChartData} options={{ plugins: { legend: { display: false } } }} />
+            <div className="flex justify-between items-end mt-4">
+              <div className="text-left">
+                <p className="text-sm text-gray-500">Current</p>
+                <p className="text-l font-semibold">{currentMaf}%</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-500">Change</p>
+                <div className={`flex items-center ${mafChange.startsWith('-') ? 'text-red-500' : 'text-green-500'} text-l`}>
+                  {mafChange.startsWith('-') ? <FaArrowDown /> : <FaArrowUp />}
+                  <span className="ml-1">{mafChange} in {range === 'all' ? 'all time' : range.replace('weeks', ' weeks')}</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Zone 2 Progress</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Line data={zone2ChartData} options={{ plugins: { legend: { display: false } } }} />
+            <div className="flex justify-between items-end mt-4">
+              <div className="text-left">
+                <p className="text-sm text-gray-500">Current</p>
+                <p className="text-l font-semibold">{currentZone2}%</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-500">Change</p>
+                <div className={`flex items-center ${zone2Change.startsWith('-') ? 'text-red-500' : 'text-green-500'} text-l`}>
+                  {zone2Change.startsWith('-') ? <FaArrowDown /> : <FaArrowUp />}
+                  <span className="ml-1">{zone2Change} in {range === 'all' ? 'all time' : range.replace('weeks', ' weeks')}</span>
                 </div>
               </div>
             </div>

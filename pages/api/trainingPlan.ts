@@ -1,6 +1,6 @@
 // pages/api/trainingPlan.ts
 import { NextApiRequest, NextApiResponse } from 'next';
-import { google } from 'googleapis';
+import { GoogleSheetsService } from '../../services/googleSheets';
 import { withRateLimit } from '../../middleware/rateLimit';
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -18,22 +18,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       return res.status(400).json({ error: 'Invalid date format' });
     }
 
-    // Set up Google Sheets API client with environment variables for auth
-    const auth = new google.auth.JWT(
-      process.env.GOOGLE_CLIENT_EMAIL,
-      undefined,
-      process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      ['https://www.googleapis.com/auth/spreadsheets']
-    );
-    
-    const sheets = google.sheets({ version: 'v4', auth });
-
-    const response = await sheets.spreadsheets.values.get({
+    const service = new GoogleSheetsService();
+    const response = await service.getSheetValues({
       spreadsheetId: process.env.GOOGLE_SHEETS_ID,
       range: 'TrainingPlan',
-    }).catch(error => {
-      console.error('Google Sheets API Error:', error);
-      throw new Error('Failed to fetch data from Google Sheets');
     });
 
     if (!response?.data?.values) {

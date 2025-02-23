@@ -1,5 +1,6 @@
 import axios from "axios";
 import { google } from "googleapis";
+import { GoogleSheetsService } from '../services/googleSheets';
 
 const CONFIG_SHEET_NAME = "Config";
 const LOG_SHEET_NAME = "TokenRefreshLog";
@@ -8,19 +9,12 @@ export async function getValidAccessToken(retryCount = 0): Promise<string> {
   const MAX_RETRIES = 2;
 
   try {
-    // Set up Google Sheets API client
-    const auth = new google.auth.JWT(
-      process.env.GOOGLE_CLIENT_EMAIL,
-      undefined,
-      process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-      ["https://www.googleapis.com/auth/spreadsheets"]
-    );
-    const sheets = google.sheets({ version: "v4", auth });
+    const service = new GoogleSheetsService();
 
     // Get tokens from Config sheet
-    const response = await sheets.spreadsheets.values.get({
+    const response = await service.getSheetValues({
       spreadsheetId: process.env.GOOGLE_SHEETS_ID,
-      range: CONFIG_SHEET_NAME,
+      range: 'Config',
     });
 
     if (!response.data.values) {
@@ -98,17 +92,14 @@ export async function getValidAccessToken(retryCount = 0): Promise<string> {
         const newExpiry = new Date(utcNow.getTime() + expiresIn * 1000);
 
         // Update tokens in Config sheet
-        await sheets.spreadsheets.values.update({
+        await service.updateSheetValues({
           spreadsheetId: process.env.GOOGLE_SHEETS_ID,
           range: 'Config!B2:B4', // Update Access Token and Expiry Time
-          valueInputOption: "RAW",
-          requestBody: {
-            values: [
-              [refreshResponse.data.access_token],
-              [refreshToken],
-              [Math.floor(newExpiry.getTime() / 1000).toString()]
-            ]
-          }
+          values: [
+            [refreshResponse.data.access_token],
+            [refreshToken],
+            [Math.floor(newExpiry.getTime() / 1000).toString()]
+          ]
         });
 
         return refreshResponse.data.access_token;

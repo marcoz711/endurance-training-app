@@ -30,11 +30,11 @@ function calculateZonePercentages(points: any[], z2Min: number, z2Max: number) {
   points.forEach((point) => {
     const hr = point?.heartRate;
     if (hr === undefined) return;
-    if (hr >= z2Min && hr <= z2Max) {
+    if (hr >= z2Min && hr <= z2Max) {  // Z2 range: 123-138
       inZ2++;
-    } else if (hr > z2Max) {
+    } else if (hr > z2Max) {  // Above 138
       aboveZ2++;
-    } else {
+    } else {  // Below 123
       belowZ2++;
     }
   });
@@ -74,55 +74,16 @@ function formatTime(ms: number) {
     .padStart(2, "0")}`;
 }
 
-async function getMostRecentActivityTimestamp(auth: any) {
-  const sheets = google.sheets({ version: "v4", auth });
-  const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
-
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: `${SHEET_NAME_ACTIVITY_LOG}!A2:B`,
-  });
-
-  const rows = response.data.values;
-  if (!rows || rows.length === 0) {
-    return null;
-  }
-
-  const lastRow = rows[rows.length - 1];
-  const [date, timestamp] = lastRow;
-
-  return new Date(`${date}T${timestamp}`);
+async function getMostRecentActivityTimestamp(service: GoogleSheetsService) {
+  const mostRecentActivity = await service.getMostRecentActivity();
+  return mostRecentActivity ? new Date(`${mostRecentActivity.date}T${mostRecentActivity.timestamp}`) : null;
 }
 
-async function writeToActivityLogSheet(auth: any, data: any[]) {
-  const sheets = google.sheets({ version: "v4", auth });
-  const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
+async function writeToActivityLogSheet(service: GoogleSheetsService, data: any[]) {
+  // Log the first activity to debug
+  console.log("First activity MAF zone:", data[0]?.mafZonePercent);
 
-  await sheets.spreadsheets.values.append({
-    spreadsheetId,
-    range: `${SHEET_NAME_ACTIVITY_LOG}!A:Z`,
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: data.map((activity) => [
-        activity.date,
-        activity.timestamp,
-        activity.exercise_type,
-        activity.duration,
-        activity.distance,
-        activity.avg_hr,
-        activity.max_hr,
-        activity.z2_percent,
-        activity.above_z2_percent,
-        activity.below_z2_percent,
-        activity.pace,
-        "",
-        activity.notes || "",
-        activity.isIncomplete,
-        activity.itemId,
-        activity.source,
-      ]),
-    },
-  });
+  await service.updateActivityLog(data);
 }
 
 async function getSourceId(service: GoogleSheetsService): Promise<string> {
@@ -181,7 +142,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const service = new GoogleSheetsService();
     
-    // Make a test call using the getSheetValues method
+    // Test call using the getSheetValues method
     try {
       await service.getSheetValues({
         spreadsheetId: process.env.GOOGLE_SHEETS_ID!,
@@ -208,10 +169,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     const activities = response.items || [];
-    const mostRecentActivity = await service.getMostRecentActivity();
-    const mostRecentTimestamp = mostRecentActivity 
-      ? new Date(`${mostRecentActivity.date}T${mostRecentActivity.timestamp}`).getTime()
-      : null;
+    const mostRecentTimestamp = await getMostRecentActivityTimestamp(service);
 
     // Adding minimum date threshold
     const minDateThreshold = new Date('2024-12-03').getTime();
@@ -219,7 +177,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const filteredActivities = activities.filter(activity => {
       const activityTimestamp = new Date(Number(activity.date)).getTime();
       return (
-        (!mostRecentTimestamp || activityTimestamp > mostRecentTimestamp) && 
+        (!mostRecentTimestamp || activityTimestamp > mostRecentTimestamp.getTime()) && 
         activityTimestamp >= minDateThreshold &&
         activity.activity !== 'Generic'
       );
@@ -237,6 +195,20 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       const laps = gpsData?.lap || [];
       const lapPoints = gpsData?.lap?.[0]?.points || [];
       const maxHeart = laps.length ? findMaxHeartRate(laps) : "N/A";
+
+      // Calculate MAF zone percentage with fixed range 123-133
+      let mafZonePercent = "N/A";
+      if (lapPoints.length > 0) {
+        const heartRatePoints = lapPoints.filter(point => point.heartRate);
+        const mafZoneSeconds = heartRatePoints.reduce((acc, point) => {
+          const hr = point.heartRate;
+          return acc + (hr >= 123 && hr <= 133 ? 1 : 0);  // Fixed MAF zone range
+        }, 0);
+        
+        if (heartRatePoints.length > 0) {
+          mafZonePercent = ((mafZoneSeconds / heartRatePoints.length) * 100).toFixed(1);
+        }
+      }
 
       const exerciseType =
         activity.fitnessSyncerActivity !== "Other" && activity.fitnessSyncerActivity
@@ -258,9 +230,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
       const { z2_percent, above_z2_percent, below_z2_percent } = calculateZonePercentages(
         lapPoints,
-        123,
-        133
+        123,  // Z2 lower limit
+        138   // Z2 upper limit - changed from 133 to 138
       );
+
+      // Add logging for MAF zone calculation
+      console.log('MAF Zone Calculation:', {
+        heartRatePoints: lapPoints.filter(point => point.heartRate).length,
+        mafZonePercent,
+        raw: lapPoints.slice(0, 3) // Show first 3 points as sample
+      });
 
       const transformedActivity = {
         date: formattedDate,
@@ -273,6 +252,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         z2_percent: lapPoints.length > 0 ? z2_percent : "N/A",
         above_z2_percent: lapPoints.length > 0 ? above_z2_percent : "N/A",
         below_z2_percent: lapPoints.length > 0 ? below_z2_percent : "N/A",
+        mafZonePercent: mafZonePercent === "N/A" ? 0 : parseFloat(mafZonePercent),
         pace: activity.duration && activity.distanceKM
           ? calculatePace(activity.duration * 1000, activity.distanceKM)
           : "N/A",
@@ -282,6 +262,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         source: activity.providerType,
       };
 
+      // Log the transformed activity
+      console.log('Transformed Activity MAF:', {
+        mafZonePercent: transformedActivity.mafZonePercent
+      });
+
       return transformedActivity;
     });
 
@@ -289,12 +274,21 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       validateActivityLog(activity)
     );
 
-    await service.updateActivityLog(validatedActivities);
+    // After validation
+    console.log('First validated activity:', {
+      mafZone: validatedActivities[0]?.mafZonePercent,
+      fullActivity: validatedActivities[0]
+    });
+
+    // Before calling updateActivityLog
+    console.log('Activities to be logged:', transformedActivities);
+
+    await writeToActivityLogSheet(service, transformedActivities);
     await triggerWeeklyMetricsCalculation();
 
     res.status(200).json({ 
       message: "Activities synced successfully", 
-      newActivities: validatedActivities.length 
+      newActivities: transformedActivities.length 
     });
   } catch (error) {
     console.error("Error syncing activities:", error);

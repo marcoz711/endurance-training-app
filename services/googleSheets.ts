@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import { ActivityLogEntry, TrainingPlanEntry } from '../types/activity';    
+import { ActivityLogEntry, TrainingPlanEntry } from '../types/activity';
 
 export class GoogleSheetsService {
   private auth;
@@ -57,19 +57,20 @@ export class GoogleSheetsService {
         activity.z2_percent,
         activity.above_z2_percent,
         activity.below_z2_percent,
+        activity.mafZonePercent,
         activity.pace,
         activity.notes,
         activity.isIncomplete,
         activity.itemId,
         activity.source
       ];
-      
+
       console.log('Row to be written:', {
         date: activity.date,
         itemId: activity.itemId,
         rowLength: row.length
       });
-      
+
       return row;
     });
 
@@ -109,7 +110,7 @@ export class GoogleSheetsService {
     const headers = rows[0];
     const dateIndex = headers.indexOf('date');
     const timestampIndex = headers.indexOf('timestamp');
-    const rowIndex = rows.findIndex((row) => 
+    const rowIndex = rows.findIndex((row) =>
       row[dateIndex] === date && row[timestampIndex] === timestamp
     );
 

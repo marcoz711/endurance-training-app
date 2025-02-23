@@ -32,6 +32,7 @@ export function validateActivityLog(activity: Partial<ActivityLogEntry>): Activi
     notes: activity.notes || '',
     isIncomplete: activity.isIncomplete || false,
     itemId: activity.itemId || '',
-    source: activity.source || ''
+    source: activity.source || '',
+    mafZonePercent: activity.mafZonePercent || 0
   };
 } 
