@@ -11,23 +11,20 @@ import {
   Weekend,
 } from '@mui/icons-material'
 
-export interface ActivityLogEntry {
+export interface Activity {
   date: string;
   timestamp: string;
   exercise_type: string;
   duration: string;
-  distance: string;
-  avg_hr: string;
-  max_hr: string;
-  z2_percent: string;
-  above_z2_percent: string;
-  below_z2_percent: string;
-  pace: string;
-  notes: string;
-  isIncomplete?: boolean;
-  itemId?: string;
-  source?: string;
+  distance?: string;
+  avg_hr?: string;
+  max_hr?: string;
+  z2_percent?: string;
+  above_z2_percent?: string;
+  below_z2_percent?: string;
   mafZonePercent?: number;
+  pace?: string;
+  notes?: string;
 }
 
 export interface TrainingPlanEntry {
