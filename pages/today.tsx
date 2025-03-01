@@ -303,6 +303,9 @@ const Today = () => {
                               </div>
                               <div className="text-sm text-gray-500 mt-1">
                                 Duration: {activity.duration}
+                                {activity.distance && (
+                                  <span className="ml-3">Distance: {activity.distance} km</span>
+                                )}
                               </div>
                               {activity.notes && (
                                 <div className="text-sm text-gray-500">Note: {activity.notes}</div>
@@ -312,29 +315,39 @@ const Today = () => {
                         </div>
                       </div>
                     </div>
-                    {shouldShowDistance && (
+                    {isRunning && (
                       <div className="grid grid-cols-3 gap-2 mt-2">
-                        {activity.distance && (
-                          <div className="bg-blue-100 rounded p-2 text-center">
-                            <div className="text-xs text-blue-600">Distance</div>
-                            <div className="text-sm font-medium">{activity.distance} km</div>
+                        {activity.z2_percent && (
+                          <div className="rounded p-2 text-center" style={{ backgroundColor: '#1e3a5f', border: '1px solid #2d5c9e' }}>
+                            <div className="text-xs text-blue-200">Z2</div>
+                            <div className="text-sm font-medium text-[var(--muted-text)]">
+                              {(() => {
+                                const value = typeof activity.z2_percent === 'string' 
+                                  ? Math.round(parseFloat(activity.z2_percent))
+                                  : Math.round(activity.z2_percent as number);
+                                return `${value}%`;
+                              })()}
+                            </div>
                           </div>
                         )}
-                        {isRunning && (
-                          <>
-                            {activity.z2_percent && (
-                              <div className="bg-green-100 rounded p-2 text-center">
-                                <div className="text-xs text-green-600">Zone 2</div>
-                                <div className="text-sm font-medium">{activity.z2_percent}%</div>
-                              </div>
-                            )}
-                            {activity.pace && (
-                              <div className="bg-purple-100 rounded p-2 text-center">
-                                <div className="text-xs text-purple-600">Pace</div>
-                                <div className="text-sm font-medium">{activity.pace}/km</div>
-                              </div>
-                            )}
-                          </>
+                        {activity.maf_zone_percent && (
+                          <div className="rounded p-2 text-center" style={{ backgroundColor: '#1b4d3e', border: '1px solid #2d8c66' }}>
+                            <div className="text-xs text-green-200">MAF</div>
+                            <div className="text-sm font-medium text-[var(--muted-text)]">
+                              {(() => {
+                                const value = typeof activity.maf_zone_percent === 'string'
+                                  ? Math.round(parseFloat(activity.maf_zone_percent))
+                                  : Math.round(activity.maf_zone_percent as number);
+                                return `${value}%`;
+                              })()}
+                            </div>
+                          </div>
+                        )}
+                        {activity.pace && (
+                          <div className="rounded p-2 text-center" style={{ backgroundColor: '#3d2f5b', border: '1px solid #6b4e9e' }}>
+                            <div className="text-xs text-purple-200">Pace</div>
+                            <div className="text-sm font-medium text-[var(--muted-text)]">{activity.pace}/km</div>
+                          </div>
                         )}
                       </div>
                     )}
