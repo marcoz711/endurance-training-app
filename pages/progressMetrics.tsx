@@ -8,6 +8,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import dayjs from 'dayjs';
 import { FaArrowUp, FaArrowDown } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
+import { useActivities } from '../hooks/useActivities';
 
 // Register necessary components for chart.js
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
@@ -101,7 +102,212 @@ const calculateWeeklyAverages = (
 };
 
 const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
-  const [range, setRange] = useState<'all' | '12weeks' | '6weeks'>('12weeks'); // Default to 12 weeks
+  const [range, setRange] = useState<'all' | '12weeks' | '6weeks'>('12weeks');
+  
+  // Add this - fetch raw activity data for detailed 6-week view
+  const sixWeeksAgo = dayjs().subtract(6, 'weeks').format('YYYY-MM-DD');
+  const today = dayjs().format('YYYY-MM-DD');
+  const { activities, isLoading } = useActivities(sixWeeksAgo, today);
+  
+  // Filter only running activities
+  const runningActivities = activities?.filter(activity => 
+    activity.exercise_type.toLowerCase().includes('run')
+  ) || [];
+  
+  // Sort by date ascending
+  const sortedRunningActivities = [...runningActivities].sort((a, b) => 
+    new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  // Create detailed charts for 6-week view
+  const detailedChartData = {
+    labels: sortedRunningActivities.map(activity => dayjs(activity.date).format('MM/DD')),
+    datasets: [
+      {
+        label: 'Z2 %',
+        data: sortedRunningActivities.map(activity => 
+          typeof activity.z2_percent === 'string' 
+            ? parseFloat(activity.z2_percent) 
+            : activity.z2_percent || 0
+        ),
+        borderColor: '#3b82f6',
+        backgroundColor: '#3b82f6',
+        yAxisID: 'percentAxis',
+      },
+      {
+        label: 'MAF %',
+        data: sortedRunningActivities.map(activity => 
+          typeof activity.maf_zone_percent === 'string' 
+            ? parseFloat(activity.maf_zone_percent) 
+            : activity.maf_zone_percent || 0
+        ),
+        borderColor: '#10b981',
+        backgroundColor: '#10b981',
+        yAxisID: 'percentAxis',
+      },
+      {
+        label: 'Pace',
+        data: sortedRunningActivities.map(activity => 
+          activity.pace ? convertPaceToHours(activity.pace) : null
+        ),
+        borderColor: '#ef4444',
+        backgroundColor: '#ef4444',
+        yAxisID: 'paceAxis',
+      }
+    ],
+  };
+
+  const detailedChartOptions = {
+    plugins: {
+      legend: {
+        display: true,
+      },
+      tooltip: {
+        callbacks: {
+          label: (context: any) => {
+            if (context.dataset.label === 'Pace') {
+              return ` ${formatHoursToPace(context.raw)}`;
+            }
+            return ` ${Math.round(context.raw)}%`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        display: true,
+        title: {
+          display: true,
+          text: 'Date'
+        }
+      },
+      percentAxis: {
+        type: 'linear',
+        position: 'left',
+        title: {
+          display: true,
+          text: 'Percentage'
+        },
+        min: 0,
+        max: 100,
+      },
+      paceAxis: {
+        type: 'linear',
+        position: 'right',
+        title: {
+          display: true,
+          text: 'Pace'
+        },
+        ticks: {
+          callback: (value: any) => formatHoursToPace(value as number),
+        },
+        grid: {
+          display: false,
+        },
+      }
+    },
+  };
+
+  // Create separate charts for detailed 6-week view
+  const detailedZ2ChartData = {
+    labels: sortedRunningActivities.map(activity => dayjs(activity.date).format('MM/DD')),
+    datasets: [{
+      data: sortedRunningActivities.map(activity => 
+        typeof activity.z2_percent === 'string' 
+          ? parseFloat(activity.z2_percent) 
+          : activity.z2_percent || 0
+      ),
+      fill: false,
+      borderColor: '#3b82f6',
+      borderWidth: 2,
+      pointRadius: 3,
+      tension: 0.2,
+    }]
+  };
+
+  const detailedMafChartData = {
+    labels: sortedRunningActivities.map(activity => dayjs(activity.date).format('MM/DD')),
+    datasets: [{
+      data: sortedRunningActivities.map(activity => 
+        typeof activity.maf_zone_percent === 'string' 
+          ? parseFloat(activity.maf_zone_percent) 
+          : activity.maf_zone_percent || 0
+      ),
+      fill: false,
+      borderColor: '#10b981',
+      borderWidth: 2,
+      pointRadius: 3,
+      tension: 0.2,
+    }]
+  };
+
+  const detailedPaceChartData = {
+    labels: sortedRunningActivities.map(activity => dayjs(activity.date).format('MM/DD')),
+    datasets: [{
+      data: sortedRunningActivities.map(activity => 
+        activity.pace ? convertPaceToHours(activity.pace) : null
+      ),
+      fill: false,
+      borderColor: '#ef4444',
+      borderWidth: 2,
+      pointRadius: 3,
+      tension: 0.2,
+    }]
+  };
+
+  // Rename these variables to avoid conflicts with weekly data
+  const detailedCurrentZ2 = sortedRunningActivities.length > 0 
+    ? Math.round(Number(sortedRunningActivities[sortedRunningActivities.length - 1].z2_percent || 0))
+    : 0;
+
+  const detailedCurrentMaf = sortedRunningActivities.length > 0 
+    ? Math.round(Number(sortedRunningActivities[sortedRunningActivities.length - 1].maf_zone_percent || 0))
+    : 0;
+
+  const detailedCurrentPace = sortedRunningActivities.length > 0 && sortedRunningActivities[sortedRunningActivities.length - 1].pace
+    ? sortedRunningActivities[sortedRunningActivities.length - 1].pace
+    : "0:00";
+
+  // Calculate changes
+  const calculateChange = (firstValue: number | string | undefined, lastValue: number | string | undefined, isPace: boolean) => {
+    if (!firstValue || !lastValue) return isPace ? "0:00" : "0%";
+    
+    const first = typeof firstValue === 'string' ? parseFloat(firstValue) : firstValue;
+    const last = typeof lastValue === 'string' ? parseFloat(lastValue) : lastValue;
+    
+    if (isPace) {
+      const firstPace = typeof firstValue === 'string' ? convertPaceToHours(firstValue) : first;
+      const lastPace = typeof lastValue === 'string' ? convertPaceToHours(lastValue as string) : last;
+      return formatHoursToPace(lastPace - firstPace);
+    }
+    
+    return first === 0 ? "0%" : `${((last - first) / first * 100).toFixed(1)}%`;
+  };
+
+  // Rename the individual activity change variables to avoid naming conflicts
+  const detailedZ2Change = sortedRunningActivities.length > 1
+    ? calculateChange(
+        sortedRunningActivities[0].z2_percent,
+        sortedRunningActivities[sortedRunningActivities.length - 1].z2_percent,
+        false
+      )
+    : "0%";
+
+  const detailedMafChange = sortedRunningActivities.length > 1
+    ? calculateChange(
+        sortedRunningActivities[0].maf_zone_percent,
+        sortedRunningActivities[sortedRunningActivities.length - 1].maf_zone_percent,
+        false
+      )
+    : "0%";
+
+  const detailedPaceChange = sortedRunningActivities.length > 1
+    ? calculateChange(
+        sortedRunningActivities[0].pace,
+        sortedRunningActivities[sortedRunningActivities.length - 1].pace,
+        true
+      )
+    : "0:00";
 
   const filterByRange = (data: ProgressMetric[], range: 'all' | '12weeks' | '6weeks') => {
     const weeksToInclude = {
@@ -248,71 +454,167 @@ const ProgressMetrics: React.FC<ProgressMetricsProps> = ({ progressData }) => {
           </button>
         </div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Pace Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Line data={paceChartData} options={paceChartOptions} />
-            <div className="flex justify-between items-end mt-4">
-              <div className="text-left">
-                <p className="text-sm text-gray-500">Current Pace</p>
-                <p className="text-l font-semibold">{formatHoursToPace(currentPace as number)} min/km</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-500">Change</p>
-                <div className={`flex items-center ${String(paceChange).startsWith('-') ? 'text-green-500' : 'text-red-500'} text-l`}>
-                  {String(paceChange).startsWith('-') ? <FaArrowDown /> : <FaArrowUp />}
-                  <span className="ml-1">{paceChange} in {range === 'all' ? 'all time' : range.replace('weeks', ' weeks')}</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {range === '6weeks' ? (
+          <>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle>Pace Progress (Individual Activities)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="text-center py-8">Loading activity data...</div>
+                ) : sortedRunningActivities.length === 0 ? (
+                  <div className="text-center py-8">No running activities found in the last 6 weeks</div>
+                ) : (
+                  <>
+                    <Line data={detailedPaceChartData} options={paceChartOptions} />
+                    <div className="flex justify-between items-end mt-4">
+                      <div className="text-left">
+                        <p className="text-sm text-gray-500">Current Pace</p>
+                        <p className="text-l font-semibold">{detailedCurrentPace} min/km</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-500">Change</p>
+                        <div className={`flex items-center ${String(detailedPaceChange).startsWith('-') ? 'text-green-500' : 'text-red-500'} text-l`}>
+                          {String(detailedPaceChange).startsWith('-') ? <FaArrowDown /> : <FaArrowUp />}
+                          <span className="ml-1">{detailedPaceChange} in last 6 weeks</span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>MAF Zone Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Line data={mafChartData} options={{ plugins: { legend: { display: false } } }} />
-            <div className="flex justify-between items-end mt-4">
-              <div className="text-left">
-                <p className="text-sm text-gray-500">Current</p>
-                <p className="text-l font-semibold">{currentMaf}%</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-500">Change</p>
-                <div className={`flex items-center ${mafChange.startsWith('-') ? 'text-red-500' : 'text-green-500'} text-l`}>
-                  {mafChange.startsWith('-') ? <FaArrowDown /> : <FaArrowUp />}
-                  <span className="ml-1">{mafChange} in {range === 'all' ? 'all time' : range.replace('weeks', ' weeks')}</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>MAF Zone Progress (Individual Activities)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="text-center py-8">Loading activity data...</div>
+                ) : sortedRunningActivities.length === 0 ? (
+                  <div className="text-center py-8">No running activities found in the last 6 weeks</div>
+                ) : (
+                  <>
+                    <Line data={detailedMafChartData} options={{ plugins: { legend: { display: false } } }} />
+                    <div className="flex justify-between items-end mt-4">
+                      <div className="text-left">
+                        <p className="text-sm text-gray-500">Current</p>
+                        <p className="text-l font-semibold">{detailedCurrentMaf}%</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-500">Change</p>
+                        <div className={`flex items-center ${detailedMafChange.startsWith('-') ? 'text-red-500' : 'text-green-500'} text-l`}>
+                          {detailedMafChange.startsWith('-') ? <FaArrowDown /> : <FaArrowUp />}
+                          <span className="ml-1">{detailedMafChange} in last 6 weeks</span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Zone 2 Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Line data={zone2ChartData} options={{ plugins: { legend: { display: false } } }} />
-            <div className="flex justify-between items-end mt-4">
-              <div className="text-left">
-                <p className="text-sm text-gray-500">Current</p>
-                <p className="text-l font-semibold">{currentZone2}%</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-500">Change</p>
-                <div className={`flex items-center ${zone2Change.startsWith('-') ? 'text-red-500' : 'text-green-500'} text-l`}>
-                  {zone2Change.startsWith('-') ? <FaArrowDown /> : <FaArrowUp />}
-                  <span className="ml-1">{zone2Change} in {range === 'all' ? 'all time' : range.replace('weeks', ' weeks')}</span>
+            <Card>
+              <CardHeader>
+                <CardTitle>Zone 2 Progress (Individual Activities)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="text-center py-8">Loading activity data...</div>
+                ) : sortedRunningActivities.length === 0 ? (
+                  <div className="text-center py-8">No running activities found in the last 6 weeks</div>
+                ) : (
+                  <>
+                    <Line data={detailedZ2ChartData} options={{ plugins: { legend: { display: false } } }} />
+                    <div className="flex justify-between items-end mt-4">
+                      <div className="text-left">
+                        <p className="text-sm text-gray-500">Current</p>
+                        <p className="text-l font-semibold">{detailedCurrentZ2}%</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-500">Change</p>
+                        <div className={`flex items-center ${detailedZ2Change.startsWith('-') ? 'text-red-500' : 'text-green-500'} text-l`}>
+                          {detailedZ2Change.startsWith('-') ? <FaArrowDown /> : <FaArrowUp />}
+                          <span className="ml-1">{detailedZ2Change} in last 6 weeks</span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle>Pace Progress</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Line data={paceChartData} options={paceChartOptions} />
+                <div className="flex justify-between items-end mt-4">
+                  <div className="text-left">
+                    <p className="text-sm text-gray-500">Current Pace</p>
+                    <p className="text-l font-semibold">{formatHoursToPace(currentPace as number)} min/km</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">Change</p>
+                    <div className={`flex items-center ${String(paceChange).startsWith('-') ? 'text-green-500' : 'text-red-500'} text-l`}>
+                      {String(paceChange).startsWith('-') ? <FaArrowDown /> : <FaArrowUp />}
+                      <span className="ml-1">{paceChange} in {range === 'all' ? 'all time' : range.replace('weeks', ' weeks')}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>MAF Zone Progress</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Line data={mafChartData} options={{ plugins: { legend: { display: false } } }} />
+                <div className="flex justify-between items-end mt-4">
+                  <div className="text-left">
+                    <p className="text-sm text-gray-500">Current</p>
+                    <p className="text-l font-semibold">{currentMaf}%</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">Change</p>
+                    <div className={`flex items-center ${mafChange.startsWith('-') ? 'text-red-500' : 'text-green-500'} text-l`}>
+                      {mafChange.startsWith('-') ? <FaArrowDown /> : <FaArrowUp />}
+                      <span className="ml-1">{mafChange} in {range === 'all' ? 'all time' : range.replace('weeks', ' weeks')}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Zone 2 Progress</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Line data={zone2ChartData} options={{ plugins: { legend: { display: false } } }} />
+                <div className="flex justify-between items-end mt-4">
+                  <div className="text-left">
+                    <p className="text-sm text-gray-500">Current</p>
+                    <p className="text-l font-semibold">{currentZone2}%</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">Change</p>
+                    <div className={`flex items-center ${zone2Change.startsWith('-') ? 'text-red-500' : 'text-green-500'} text-l`}>
+                      {zone2Change.startsWith('-') ? <FaArrowDown /> : <FaArrowUp />}
+                      <span className="ml-1">{zone2Change} in {range === 'all' ? 'all time' : range.replace('weeks', ' weeks')}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </Layout>
   );
